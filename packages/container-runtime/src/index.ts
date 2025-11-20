@@ -2,6 +2,7 @@ import { Server } from './Server.js';
 import { ExecutionService } from './ExecutionService.js';
 import { WorkspaceManager } from './WorkspaceManager.js';
 import { ClaudeExecutor } from './ClaudeExecutor.js';
+import { SessionManager } from './SessionManager.js';
 import { RuntimeConfig } from './types.js';
 
 function loadConfig(): RuntimeConfig {
@@ -19,8 +20,16 @@ function main(): void {
   // Dependency injection
   const workspaceManager = new WorkspaceManager(config.workspaceBaseDir, config.pluginDir);
   const executor = new ClaudeExecutor(config.timeout);
-  const executionService = new ExecutionService(workspaceManager, executor);
+  const sessionManager = new SessionManager(workspaceManager);
+  const executionService = new ExecutionService(workspaceManager, executor, sessionManager);
   const server = new Server(executionService, config);
+
+  // Graceful shutdown
+  process.on('SIGTERM', async () => {
+    console.log('Shutting down...');
+    await sessionManager.shutdown();
+    process.exit(0);
+  });
 
   server.start();
 }
@@ -28,5 +37,5 @@ function main(): void {
 main();
 
 // Export for testing
-export { Server, ExecutionService, WorkspaceManager, ClaudeExecutor };
+export { Server, ExecutionService, WorkspaceManager, ClaudeExecutor, SessionManager };
 export type { RuntimeConfig, ExecuteRequest, ExecuteResponse, FileInput } from './types.js';

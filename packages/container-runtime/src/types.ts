@@ -8,6 +8,7 @@ export interface ExecuteRequest {
   files?: FileInput[];
   timeout?: number;
   apiKey?: string;
+  sessionId?: string;
 }
 
 export interface ExecuteResponse {

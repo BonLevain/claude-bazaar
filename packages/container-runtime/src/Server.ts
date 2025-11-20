@@ -3,17 +3,20 @@ import { ExecutionService } from './ExecutionService.js';
 import { ExecuteRequest, RuntimeConfig } from './types.js';
 import { AuthManager } from './auth/AuthManager.js';
 import { AuthErrorResponse } from './auth/types.js';
+import { CommandDiscovery } from './CommandDiscovery.js';
 
 export class Server {
   private readonly app: Express;
   private readonly executionService: ExecutionService;
   private readonly config: RuntimeConfig;
   private readonly authManager: AuthManager;
+  private readonly commandDiscovery: CommandDiscovery;
 
   constructor(executionService: ExecutionService, config: RuntimeConfig) {
     this.executionService = executionService;
     this.config = config;
     this.authManager = new AuthManager();
+    this.commandDiscovery = new CommandDiscovery(config.pluginDir);
     this.app = express();
     this.setupMiddleware();
     this.setupRoutes();
@@ -33,6 +36,16 @@ export class Server {
     this.app.get('/auth/status', (_req: Request, res: Response) => {
       const status = this.authManager.getAuthStatus();
       res.json(status);
+    });
+
+    // Commands endpoint - returns available slash commands
+    this.app.get('/commands', async (_req: Request, res: Response, next: NextFunction) => {
+      try {
+        const commands = await this.commandDiscovery.discoverCommands();
+        res.json({ commands });
+      } catch (error) {
+        next(error);
+      }
     });
 
     this.app.post('/execute', async (req: Request, res: Response, next: NextFunction) => {
@@ -115,6 +128,7 @@ export class Server {
   private setupErrorHandler(): void {
     this.app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Request error:', error.message);
+      console.error('Stack:', error.stack);
       res.status(400).json({
         success: false,
         output: '',
@@ -128,7 +142,7 @@ export class Server {
       throw new Error('Request body must be an object');
     }
 
-    const { prompt, files, timeout } = body as Record<string, unknown>;
+    const { prompt, files, timeout, sessionId } = body as Record<string, unknown>;
 
     if (typeof prompt !== 'string' || !prompt.trim()) {
       throw new Error('prompt is required and must be a non-empty string');
@@ -153,10 +167,15 @@ export class Server {
       throw new Error('timeout must be a number');
     }
 
+    if (sessionId !== undefined && typeof sessionId !== 'string') {
+      throw new Error('sessionId must be a string');
+    }
+
     return {
       prompt: prompt.trim(),
       files: files as ExecuteRequest['files'],
       timeout: timeout as number | undefined,
+      sessionId: sessionId as string | undefined,
     };
   }
 

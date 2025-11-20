@@ -11,6 +11,12 @@ interface FileItem {
   content: string;
 }
 
+interface SlashCommand {
+  name: string;
+  description: string;
+  source: 'builtin' | 'project' | 'user';
+}
+
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -19,7 +25,14 @@ export default function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('shipyard_api_key') || '');
   const [showSettings, setShowSettings] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
+  const [commands, setCommands] = useState<SlashCommand[]>([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Generate session ID for conversation context
+  const [sessionId] = useState(() => crypto.randomUUID());
 
   const saveApiKey = () => {
     setApiKey(tempApiKey);
@@ -46,6 +59,41 @@ export default function App() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Fetch available commands on mount
+  useEffect(() => {
+    fetch('/api/commands')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.commands) {
+          setCommands(data.commands);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch commands:', err));
+  }, []);
+
+  // Filter commands based on input
+  const filteredCommands = input.startsWith('/')
+    ? commands.filter((cmd) =>
+        cmd.name.toLowerCase().includes(input.toLowerCase())
+      )
+    : [];
+
+  // Show autocomplete when typing a slash command
+  useEffect(() => {
+    if (input.startsWith('/') && filteredCommands.length > 0 && !input.includes(' ')) {
+      setShowAutocomplete(true);
+      setSelectedCommandIndex(0);
+    } else {
+      setShowAutocomplete(false);
+    }
+  }, [input, filteredCommands.length]);
+
+  const selectCommand = (command: SlashCommand) => {
+    setInput(command.name + ' ');
+    setShowAutocomplete(false);
+    inputRef.current?.focus();
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = e.target.files;
@@ -85,6 +133,7 @@ export default function App() {
         body: JSON.stringify({
           prompt: userMessage,
           files: files.length > 0 ? files : undefined,
+          sessionId,
         }),
       });
 
@@ -116,8 +165,13 @@ export default function App() {
           const outputData = JSON.parse(data.output);
           if (outputData.result) {
             assistantMessage = outputData.result;
+          } else if (outputData.subtype === 'success') {
+            // Command executed but returned no text output
+            assistantMessage = 'Command executed successfully.';
+          } else if (outputData.is_error) {
+            assistantMessage = `Error: ${outputData.error || 'Command failed'}`;
           } else {
-            assistantMessage = data.output;
+            assistantMessage = 'Command completed.';
           }
         } catch {
           // If not JSON, use raw output
@@ -342,21 +396,57 @@ export default function App() {
             </div>
           </label>
 
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <textarea
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (showAutocomplete) {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSelectedCommandIndex((prev) =>
+                      prev < filteredCommands.length - 1 ? prev + 1 : prev
+                    );
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSelectedCommandIndex((prev) => (prev > 0 ? prev - 1 : 0));
+                  } else if (e.key === 'Tab' || e.key === 'Enter') {
+                    e.preventDefault();
+                    if (filteredCommands[selectedCommandIndex]) {
+                      selectCommand(filteredCommands[selectedCommandIndex]);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setShowAutocomplete(false);
+                  }
+                } else if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSubmit(e);
                 }
               }}
-              placeholder="Enter your prompt..."
+              placeholder="Enter your prompt... (type / for commands)"
               rows={1}
               className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               style={{ minHeight: '48px', maxHeight: '200px' }}
             />
+
+            {/* Autocomplete dropdown */}
+            {showAutocomplete && filteredCommands.length > 0 && (
+              <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {filteredCommands.map((cmd, index) => (
+                  <button
+                    key={cmd.name}
+                    onClick={() => selectCommand(cmd)}
+                    className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${
+                      index === selectedCommandIndex ? 'bg-blue-50' : ''
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900">{cmd.name}</div>
+                    <div className="text-sm text-gray-500">{cmd.description}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <button

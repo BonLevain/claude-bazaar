@@ -1,7 +1,7 @@
 FROM node:20-slim
 
-# Install Claude Code CLI globally
-RUN npm install -g @anthropic-ai/claude-code
+# Install Claude Code CLI globally (latest version)
+RUN npm install -g @anthropic-ai/claude-code@latest
 
 # Create app directories
 RUN mkdir -p /app/runtime /app/plugin /tmp/shipyard
