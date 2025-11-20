@@ -24,6 +24,20 @@ Claude Shipyard supports two deployment paths:
 
 ## Solution: Headless Claude Code as a Service
 
+### Access Methods
+
+Claude Shipyard supports multiple ways for users to interact with containerized plugins:
+
+1. **Web Interface** (Simplest) - Browser-based chat UI for immediate access
+2. **API/HTTP** - Direct HTTP calls for integration into other tools
+3. **Thin Client + MCP** (Future) - Native Claude Code integration for power users
+
+The **web interface** is the recommended starting point for creators as it:
+- Requires zero setup from users (just a URL)
+- Easy to share and demo
+- Simple to gate with authentication for monetization
+- Works for anyone, not just Claude Code users
+
 ### Architecture Overview
 
 #### Path 1: Shipyard Marketplace (Monetized)
@@ -124,6 +138,62 @@ Claude Shipyard supports two deployment paths:
 4. **Simple thin client** - Literally just "send prompt, stream response"
 
 ## Technical Specification
+
+### Component 0: Web Interface (Browser-Based Access)
+
+The simplest way for users to interact with a containerized plugin. Creators get a shareable URL that provides a chat-style interface.
+
+#### Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ User's Browser                                           │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ Web Interface (React)                            │    │
+│  │                                                  │    │
+│  │  - Chat-style input                             │    │
+│  │  - File upload (optional)                       │    │
+│  │  - Streaming response display                   │    │
+│  │  - Auth/subscription check                      │    │
+│  └──────────────────────┬───────────────────────────┘    │
+└─────────────────────────┼───────────────────────────────┘
+                          │ HTTP/SSE
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│ Container Runtime                                        │
+│  POST /execute → Headless Claude Code → Stream Response │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### Features
+
+- **Chat Interface**: Simple prompt input with streaming responses
+- **File Context**: Upload files or paste code for analysis
+- **Response Streaming**: Real-time output via Server-Sent Events
+- **Markdown Rendering**: Formatted code blocks, lists, etc.
+- **Session History**: Keep conversation context (optional)
+
+#### User Flow
+
+```bash
+# Creator shares URL
+https://my-plugin.shipyard.run
+
+# User opens in browser
+# → Enters prompt: "Analyze this code for security issues"
+# → Uploads files or pastes code
+# → Clicks "Run"
+# → Sees streaming response
+```
+
+#### Benefits for Creators
+
+1. **Instant sharing** - Just send a URL
+2. **No user setup** - Works in any browser
+3. **Easy monetization** - Gate with login/payment
+4. **Analytics** - Track usage, popular prompts
+5. **Customizable** - Brand with logo, colors
 
 ### Component 1: Thin Client (Installed by End User)
 

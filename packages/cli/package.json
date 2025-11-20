@@ -1,0 +1,21 @@
+{
+  "name": "@shipyard/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "shipyard": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "execa": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
