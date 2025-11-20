@@ -243,9 +243,22 @@ npm run test
 npm link
 ```
 
+## Documentation Maintenance
+
+**Keep these files up to date when making changes:**
+
+- **Package README.md files** - Update when adding/changing API endpoints, environment variables, or usage patterns
+- **Package .gitignore files** - Add new build artifacts or generated files
+- **This CLAUDE.md** - Update when adding new patterns, architecture decisions, or project structure changes
+- **IMPLEMENTATION-PLAN-1.md** - Update task status as work progresses
+
+Each package should have:
+- `README.md` with installation, usage, API docs, and environment variables
+- `.gitignore` with `node_modules/`, `dist/`, and package-specific ignores
+
 ## Contributing
 
 1. Follow the development principles outlined above
 2. Write integration tests for new features
 3. Use conventional commits
-4. Update this CLAUDE.md if adding new patterns or architecture decisions
+4. Update documentation files as described above
