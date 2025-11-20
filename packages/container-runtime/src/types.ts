@@ -7,6 +7,7 @@ export interface ExecuteRequest {
   prompt: string;
   files?: FileInput[];
   timeout?: number;
+  apiKey?: string;
 }
 
 export interface ExecuteResponse {

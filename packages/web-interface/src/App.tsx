@@ -16,7 +16,28 @@ export default function App() {
   const [input, setInput] = useState('');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('shipyard_api_key') || '');
+  const [showSettings, setShowSettings] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const saveApiKey = () => {
+    setApiKey(tempApiKey);
+    localStorage.setItem('shipyard_api_key', tempApiKey);
+    setShowSettings(false);
+  };
+
+  const clearApiKey = () => {
+    setApiKey('');
+    setTempApiKey('');
+    localStorage.removeItem('shipyard_api_key');
+  };
+
+  const getMaskedKey = (key: string) => {
+    if (!key) return '';
+    if (key.length <= 10) return '••••••••';
+    return `${key.slice(0, 7)}...${key.slice(-4)}`;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,6 +80,7 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(apiKey && { 'Authorization': `Bearer ${apiKey}` }),
         },
         body: JSON.stringify({
           prompt: userMessage,
@@ -66,75 +88,48 @@ export default function App() {
         }),
       });
 
+      if (response.status === 401) {
+        const errorData = await response.json();
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `**Authentication Required**\n\n${errorData.hint || 'Please configure your API key in settings.'}\n\nClick the ⚙️ icon in the header to add your API key.`,
+          },
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Handle streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('No response body');
-      }
+      // Handle JSON response from /execute endpoint
+      const data = await response.json();
 
       let assistantMessage = '';
-      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.type === 'assistant' && parsed.message?.content) {
-                for (const content of parsed.message.content) {
-                  if (content.type === 'text') {
-                    assistantMessage += content.text;
-                    setMessages((prev) => {
-                      const newMessages = [...prev];
-                      newMessages[newMessages.length - 1] = {
-                        role: 'assistant',
-                        content: assistantMessage,
-                      };
-                      return newMessages;
-                    });
-                  }
-                }
-              } else if (parsed.type === 'result' && parsed.result) {
-                assistantMessage = parsed.result;
-                setMessages((prev) => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1] = {
-                    role: 'assistant',
-                    content: assistantMessage,
-                  };
-                  return newMessages;
-                });
-              }
-            } catch {
-              // Not JSON, might be raw text
-              assistantMessage += data;
-              setMessages((prev) => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1] = {
-                  role: 'assistant',
-                  content: assistantMessage,
-                };
-                return newMessages;
-              });
-            }
+      if (data.success && data.output) {
+        // Parse the output JSON string
+        try {
+          const outputData = JSON.parse(data.output);
+          if (outputData.result) {
+            assistantMessage = outputData.result;
+          } else {
+            assistantMessage = data.output;
           }
+        } catch {
+          // If not JSON, use raw output
+          assistantMessage = data.output;
         }
+      } else if (data.error) {
+        assistantMessage = `Error: ${data.error}`;
+      } else {
+        assistantMessage = 'No response received';
       }
+
+      setMessages((prev) => [...prev, { role: 'assistant', content: assistantMessage }]);
 
       // Clear files after successful execution
       setFiles([]);
@@ -154,10 +149,99 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-semibold mb-4">API Key Settings</h2>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Anthropic API Key
+              </label>
+              <input
+                type="password"
+                value={tempApiKey}
+                onChange={(e) => setTempApiKey(e.target.value)}
+                placeholder="sk-ant-..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                Get your API key from{' '}
+                <a
+                  href="https://console.anthropic.com/settings/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  console.anthropic.com
+                </a>
+              </p>
+              {apiKey && (
+                <p className="mt-1 text-sm text-gray-500">
+                  Current: {getMaskedKey(apiKey)}
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-between">
+              <button
+                onClick={clearApiKey}
+                className="px-4 py-2 text-red-600 hover:text-red-700"
+              >
+                Clear
+              </button>
+              <div className="space-x-2">
+                <button
+                  onClick={() => {
+                    setShowSettings(false);
+                    setTempApiKey('');
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveApiKey}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-900">Shipyard Plugin</h1>
-        <p className="text-sm text-gray-500">Powered by Claude Code</p>
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Shipyard Plugin</h1>
+          <p className="text-sm text-gray-500">Powered by Claude Code</p>
+        </div>
+        <button
+          onClick={() => {
+            setTempApiKey(apiKey);
+            setShowSettings(true);
+          }}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+          title="Settings"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+        </button>
       </header>
 
       {/* Messages */}

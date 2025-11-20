@@ -22,12 +22,13 @@ export class ClaudeExecutor {
   async execute(
     workspacePath: string,
     prompt: string,
-    timeout?: number
+    timeout?: number,
+    apiKey?: string
   ): Promise<ExecutionResult> {
     const effectiveTimeout = timeout ?? this.defaultTimeout;
 
     return new Promise((resolve, reject) => {
-      const process = this.spawnClaude(workspacePath, prompt);
+      const process = this.spawnClaude(workspacePath, prompt, false, apiKey);
       const timeoutId = this.setupTimeout(process, effectiveTimeout, reject);
 
       let stdout = '';
@@ -61,12 +62,13 @@ export class ClaudeExecutor {
   executeStreaming(
     workspacePath: string,
     prompt: string,
-    timeout?: number
+    timeout?: number,
+    apiKey?: string
   ): StreamingExecution {
     const emitter = new EventEmitter() as StreamingExecution;
     const effectiveTimeout = timeout ?? this.defaultTimeout;
 
-    const process = this.spawnClaude(workspacePath, prompt, true);
+    const process = this.spawnClaude(workspacePath, prompt, true, apiKey);
     const timeoutId = this.setupTimeout(process, effectiveTimeout, (err) => emitter.emit('error', err));
 
     let stdout = '';
@@ -99,18 +101,27 @@ export class ClaudeExecutor {
     return emitter;
   }
 
-  private spawnClaude(workspacePath: string, prompt: string, streaming: boolean = false): ChildProcess {
+  private spawnClaude(
+    workspacePath: string,
+    prompt: string,
+    streaming: boolean = false,
+    apiKey?: string
+  ): ChildProcess {
     const args = ['-p', prompt];
     if (!streaming) {
       args.push('--output-format', 'json');
     }
 
+    // Build environment - only set ANTHROPIC_API_KEY if we have an explicit key
+    // Otherwise let Claude use stored subscription credentials
+    const env = { ...process.env };
+    if (apiKey) {
+      env.ANTHROPIC_API_KEY = apiKey;
+    }
+
     return spawn('claude', args, {
       cwd: workspacePath,
-      env: {
-        ...process.env,
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-      },
+      env,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   }

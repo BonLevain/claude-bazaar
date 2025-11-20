@@ -1,15 +1,19 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import { ExecutionService } from './ExecutionService.js';
 import { ExecuteRequest, RuntimeConfig } from './types.js';
+import { AuthManager } from './auth/AuthManager.js';
+import { AuthErrorResponse } from './auth/types.js';
 
 export class Server {
   private readonly app: Express;
   private readonly executionService: ExecutionService;
   private readonly config: RuntimeConfig;
+  private readonly authManager: AuthManager;
 
   constructor(executionService: ExecutionService, config: RuntimeConfig) {
     this.executionService = executionService;
     this.config = config;
+    this.authManager = new AuthManager();
     this.app = express();
     this.setupMiddleware();
     this.setupRoutes();
@@ -25,9 +29,30 @@ export class Server {
       res.json({ status: 'healthy', timestamp: new Date().toISOString() });
     });
 
+    // Auth status endpoint
+    this.app.get('/auth/status', (_req: Request, res: Response) => {
+      const status = this.authManager.getAuthStatus();
+      res.json(status);
+    });
+
     this.app.post('/execute', async (req: Request, res: Response, next: NextFunction) => {
       try {
+        // Resolve authentication
+        const auth = this.authManager.resolveAuth(req);
+
+        if (!auth) {
+          const errorResponse: AuthErrorResponse = {
+            success: false,
+            error: 'Authentication required',
+            code: 'AUTH_REQUIRED',
+            hint: 'Provide API key via Authorization: Bearer header, x-api-key header, or apiKey in body',
+          };
+          return res.status(401).json(errorResponse);
+        }
+
         const request = this.validateRequest(req.body);
+        request.apiKey = auth.apiKey;
+
         const response = await this.executionService.execute(request);
 
         if (response.success) {
@@ -42,7 +67,21 @@ export class Server {
 
     this.app.post('/execute/stream', async (req: Request, res: Response, next: NextFunction) => {
       try {
+        // Resolve authentication
+        const auth = this.authManager.resolveAuth(req);
+
+        if (!auth) {
+          const errorResponse: AuthErrorResponse = {
+            success: false,
+            error: 'Authentication required',
+            code: 'AUTH_REQUIRED',
+            hint: 'Provide API key via Authorization: Bearer header, x-api-key header, or apiKey in body',
+          };
+          return res.status(401).json(errorResponse);
+        }
+
         const request = this.validateRequest(req.body);
+        request.apiKey = auth.apiKey;
 
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');

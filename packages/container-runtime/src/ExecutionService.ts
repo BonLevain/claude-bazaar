@@ -32,7 +32,8 @@ export class ExecutionService {
       const result = await this.executor.execute(
         workspacePath,
         request.prompt,
-        request.timeout
+        request.timeout,
+        request.apiKey
       );
 
       return {
@@ -69,7 +70,8 @@ export class ExecutionService {
       const stream = this.executor.executeStreaming(
         workspacePath,
         request.prompt,
-        request.timeout
+        request.timeout,
+        request.apiKey
       );
 
       stream.on('data', (chunk) => emitter.emit('data', chunk));
