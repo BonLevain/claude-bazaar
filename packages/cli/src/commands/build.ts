@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { execa } from 'execa';
 import { ShipyardConfig, BuildOptions, FileSystemService } from '../types.js';
 import { ConfigLoader } from '../services/ConfigLoader.js';
+import { ImageTag } from '../services/ImageTag.js';
 
 export class BuildCommand {
   private readonly fileSystem: FileSystemService;
@@ -16,7 +17,10 @@ export class BuildCommand {
   async execute(projectDir: string = process.cwd(), options: BuildOptions = {}): Promise<string> {
     const config = await this.configLoader.load(projectDir);
     const dockerfilePath = await this.generateDockerfile(projectDir, config);
-    const tag = options.tag || `${config.name}:${config.version}`;
+    const imageTag = options.tag
+      ? new ImageTag(options.tag.split(':')[0], options.tag.split(':')[1] || 'latest')
+      : ImageTag.fromConfig(config);
+    const tag = imageTag.toString();
 
     console.log(`Building ${tag}...`);
 
@@ -118,7 +122,9 @@ CMD ["node", "dist/index.js"]
   }
 
   private async pushImage(tag: string, registry: string): Promise<string> {
-    const remoteTag = `${registry}/${tag}`;
+    const [name, version] = tag.split(':');
+    const imageTag = new ImageTag(name, version || 'latest');
+    const remoteTag = imageTag.withRegistry(registry);
 
     await execa('docker', ['tag', tag, remoteTag]);
     await execa('docker', ['push', remoteTag], { stdio: 'inherit' });

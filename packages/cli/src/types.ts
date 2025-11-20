@@ -17,6 +17,13 @@ export interface BuildOptions {
   registry?: string;
 }
 
+export interface RunOptions {
+  tag?: string;
+  port?: number;
+  detach?: boolean;
+  env?: Record<string, string>;
+}
+
 export interface FileSystemService {
   exists(path: string): Promise<boolean>;
   readFile(path: string): Promise<string>;

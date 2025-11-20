@@ -27,6 +27,7 @@ body {
 /* Markdown code blocks */
 pre {
   background-color: #1e1e1e;
+  color: #f8f8f2;
   border-radius: 6px;
   padding: 1rem;
   overflow-x: auto;

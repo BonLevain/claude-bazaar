@@ -4,6 +4,7 @@ import { FileSystem } from './services/FileSystem.js';
 import { ConfigLoader } from './services/ConfigLoader.js';
 import { InitCommand } from './commands/init.js';
 import { BuildCommand } from './commands/build.js';
+import { RunCommand } from './commands/run.js';
 
 function createProgram(): Command {
   const program = new Command();
@@ -15,6 +16,7 @@ function createProgram(): Command {
   // Commands
   const initCommand = new InitCommand(fileSystem);
   const buildCommand = new BuildCommand(fileSystem, configLoader);
+  const runCommand = new RunCommand(configLoader);
 
   program
     .name('shipyard')
@@ -42,6 +44,21 @@ function createProgram(): Command {
     .action(async (options) => {
       try {
         await buildCommand.execute(process.cwd(), options);
+      } catch (error) {
+        console.error('Error:', (error as Error).message);
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('run')
+    .description('Run Docker container')
+    .option('-t, --tag <tag>', 'Image tag')
+    .option('-p, --port <port>', 'Port to expose', parseInt)
+    .option('-d, --detach', 'Run in background')
+    .action(async (options) => {
+      try {
+        await runCommand.execute(process.cwd(), options);
       } catch (error) {
         console.error('Error:', (error as Error).message);
         process.exit(1);
