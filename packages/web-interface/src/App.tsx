@@ -163,15 +163,14 @@ export default function App() {
         // Parse the output JSON string
         try {
           const outputData = JSON.parse(data.output);
-          if (outputData.result) {
-            assistantMessage = outputData.result;
-          } else if (outputData.subtype === 'success') {
-            // Command executed but returned no text output
-            assistantMessage = 'Command executed successfully.';
-          } else if (outputData.is_error) {
-            assistantMessage = `Error: ${outputData.error || 'Command failed'}`;
+          if (outputData.is_error) {
+            assistantMessage = `Error: ${outputData.error || outputData.result || 'Command failed'}`;
+          } else if ('result' in outputData) {
+            // Use result field if it exists (even if empty string)
+            assistantMessage = outputData.result || 'Command completed with no output.';
           } else {
-            assistantMessage = 'Command completed.';
+            // No result field, show raw output
+            assistantMessage = data.output;
           }
         } catch {
           // If not JSON, use raw output
