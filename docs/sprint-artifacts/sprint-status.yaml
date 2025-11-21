@@ -1,0 +1,81 @@
+# Sprint Status - claude-shipyard
+# generated: 2025-11-21
+# project: claude-shipyard
+# project_key: claude-shipyard
+# tracking_system: file-system
+# story_location: docs/sprint-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#   - done: All stories completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review (via code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: "2025-11-21"
+project: "claude-shipyard"
+project_key: "claude-shipyard"
+tracking_system: "file-system"
+story_location: "docs/sprint-artifacts"
+
+development_status:
+  # Epic 1: Foundation & CLI Core (Completed)
+  epic-1: done
+  epic-1-retrospective: completed
+
+  # Epic 2: Container Runtime & Local Development (Completed)
+  epic-2: done
+  epic-2-retrospective: completed
+
+  # Epic 3: Web Interface Access (Completed)
+  epic-3: done
+  epic-3-retrospective: completed
+
+  # Epic 4: Container Configuration & Customization
+  epic-4: backlog
+  4-1-runtime-selection-in-init-command: review
+  4-2-dependency-file-configuration: backlog
+  4-3-static-file-folder-configuration: backlog
+  4-4-dockerfile-generation-with-runtime-support: backlog
+  4-5-nginx-configuration-for-static-files: backlog
+  4-6-api-key-authentication-for-static-files: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Production Build & Self-Hosted Deployment
+  epic-5: backlog
+  5-1-build-command-implementation: backlog
+  5-2-multi-architecture-build-support: backlog
+  5-3-registry-push-support: backlog
+  5-4-deployment-manifest-generation: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Marketplace Publishing & Authentication
+  epic-6: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: Billing & Monetization
+  epic-7: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8: MCP Proxy & Marketplace Orchestration
+  epic-8: backlog
+  epic-8-retrospective: optional

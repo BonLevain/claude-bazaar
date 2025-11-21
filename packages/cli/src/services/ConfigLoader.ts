@@ -9,7 +9,7 @@ export class ConfigLoader {
   }
 
   async load(projectDir: string): Promise<ShipyardConfig> {
-    const configPath = path.join(projectDir, 'shipyard.config.ts');
+    const configPath = path.join(projectDir, 'claude-shipyard.config.ts');
 
     if (!await this.fileSystem.exists(configPath)) {
       throw new Error(`Config not found: ${configPath}. Run 'shipyard init' first.`);

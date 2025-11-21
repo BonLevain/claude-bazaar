@@ -4,11 +4,26 @@ export interface ShipyardConfig {
   description: string;
   include: string[];
   runtime: RuntimeConfig;
+  dependencies?: DependenciesConfig;
+  staticFiles?: StaticFileConfig[];
+}
+
+export interface DependenciesConfig {
+  python?: string;  // path to requirements.txt
+  node?: string;    // path to package.json
+}
+
+export interface StaticFileConfig {
+  folder: string;           // local folder path
+  urlPath: string;          // URL path to serve at
+  access?: 'shared' | 'per-user';  // access control mode
+  // Future options: cache, auth, etc.
 }
 
 export interface RuntimeConfig {
   port: number;
   timeout: number;
+  image: string;
 }
 
 export interface BuildOptions {

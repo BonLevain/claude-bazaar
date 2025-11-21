@@ -4,6 +4,7 @@ import { ExecuteRequest, RuntimeConfig } from './types.js';
 import { AuthManager } from './auth/AuthManager.js';
 import { AuthErrorResponse } from './auth/types.js';
 import { CommandDiscovery } from './CommandDiscovery.js';
+import { StaticFilesService } from './StaticFilesService.js';
 
 export class Server {
   private readonly app: Express;
@@ -11,12 +12,14 @@ export class Server {
   private readonly config: RuntimeConfig;
   private readonly authManager: AuthManager;
   private readonly commandDiscovery: CommandDiscovery;
+  private readonly staticFilesService: StaticFilesService;
 
   constructor(executionService: ExecutionService, config: RuntimeConfig) {
     this.executionService = executionService;
     this.config = config;
     this.authManager = new AuthManager();
     this.commandDiscovery = new CommandDiscovery(config.pluginDir);
+    this.staticFilesService = new StaticFilesService(config.pluginDir);
     this.app = express();
     this.setupMiddleware();
     this.setupRoutes();
@@ -43,6 +46,36 @@ export class Server {
       try {
         const commands = await this.commandDiscovery.discoverCommands();
         res.json({ commands });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // App info endpoint - returns name and description from config
+    this.app.get('/app/info', (_req: Request, res: Response) => {
+      const pluginConfig = this.config.pluginConfig;
+      if (!pluginConfig) {
+        return res.status(404).json({
+          error: 'Plugin configuration not found',
+        });
+      }
+      res.json({
+        name: pluginConfig.name,
+        description: pluginConfig.description,
+        version: pluginConfig.version,
+      });
+    });
+
+    // Static files listing endpoint - returns nested structure of all static files
+    this.app.get('/static/files', async (_req: Request, res: Response, next: NextFunction) => {
+      try {
+        const pluginConfig = this.config.pluginConfig;
+        if (!pluginConfig?.staticFiles || pluginConfig.staticFiles.length === 0) {
+          return res.json({ staticFiles: [] });
+        }
+
+        const staticFiles = await this.staticFilesService.listAllStaticFiles(pluginConfig.staticFiles);
+        res.json({ staticFiles });
       } catch (error) {
         next(error);
       }

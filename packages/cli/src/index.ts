@@ -38,7 +38,7 @@ function createProgram(): Command {
   program
     .command('build')
     .description('Build Docker image')
-    .option('-t, --tag <tag>', 'Image tag')
+    .option('-t, --tag <tag>', 'Image tag (default: name:version from config)')
     .option('--push', 'Push to registry')
     .option('--registry <registry>', 'Container registry')
     .action(async (options) => {

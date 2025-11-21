@@ -1,0 +1,103 @@
+# Workflow Status Template
+
+# This tracks progress through BMM methodology Analysis, Planning, and Solutioning phases.
+# Implementation phase is tracked separately in sprint-status.yaml
+
+# STATUS DEFINITIONS:
+# ==================
+# Initial Status (before completion):
+#   - required: Must be completed to progress
+#   - optional: Can be completed but not required
+#   - recommended: Strongly suggested but not required
+#   - conditional: Required only if certain conditions met (e.g., if_has_ui)
+#
+# Completion Status:
+#   - {file-path}: File created/found (e.g., "docs/product-brief.md")
+#   - skipped: Optional/conditional workflow that was skipped
+
+generated: "2025-11-20"
+project: "claude-shipyard"
+project_type: "product"
+selected_track: "bmad-method"
+field_type: "brownfield"
+workflow_path: "method-brownfield.yaml"
+workflow_status:
+  # Prerequisite - Documentation
+  - id: document-project
+    phase: prerequisite
+    status: optional
+    agent: analyst
+    command: document-project
+    note: "Recommended for brownfield - analyze existing codebase"
+
+  # Phase 0 - Discovery (Optional)
+  - id: brainstorm-project
+    phase: 0
+    status: skipped
+    agent: analyst
+    command: brainstorm-project
+
+  - id: research
+    phase: 0
+    status: skipped
+    agent: analyst
+    command: research
+
+  - id: product-brief
+    phase: 0
+    status: skipped
+    agent: analyst
+    command: product-brief
+
+  # Phase 1 - Planning
+  - id: prd
+    phase: 1
+    status: "PRD-MARKETPLACE-MONETIZATION.md"
+    agent: pm
+    command: prd
+
+  - id: create-design
+    phase: 1
+    status: conditional
+    agent: ux-designer
+    command: create-ux-design
+    note: "if_has_ui"
+
+  # Phase 2 - Solutioning
+  - id: create-architecture
+    phase: 2
+    status: "CODE-ARCHITECTURE.md"
+    agent: architect
+    command: architecture
+
+  - id: create-epics-and-stories
+    phase: 2
+    status: required
+    agent: pm
+    command: create-epics-and-stories
+    note: "Break down PRD into implementable epics and stories"
+
+  - id: test-design
+    phase: 2
+    status: recommended
+    agent: tea
+    command: test-design
+
+  - id: validate-architecture
+    phase: 2
+    status: optional
+    agent: architect
+    command: validate-architecture
+
+  - id: implementation-readiness
+    phase: 2
+    status: required
+    agent: architect
+    command: implementation-readiness
+
+  # Phase 3 - Implementation
+  - id: sprint-planning
+    phase: 3
+    status: required
+    agent: sm
+    command: sprint-planning
