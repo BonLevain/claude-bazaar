@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { IoChatbubbleOutline, IoFolderOutline, IoSettingsOutline } from 'react-icons/io5';
+import { usePlugins } from './contexts/PluginContext';
+import { PluginSelector } from './components/PluginSelector';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -19,11 +21,6 @@ interface SlashCommand {
   source: 'builtin' | 'project' | 'user';
 }
 
-interface AppInfo {
-  name: string;
-  description: string;
-  version: string;
-}
 
 interface FileTreeNode {
   name: string;
@@ -126,11 +123,23 @@ function SettingsPage() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('shipyard_api_key') || '');
   const [showModal, setShowModal] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
+  const { plugins } = usePlugins();
 
   const getMaskedKey = (key: string) => {
     if (!key) return 'Not configured';
     if (key.length <= 10) return '••••••••';
     return `${key.slice(0, 7)}...${key.slice(-4)}`;
+  };
+
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'online':
+        return 'bg-green-400';
+      case 'offline':
+        return 'bg-red-400';
+      default:
+        return 'bg-gray-400';
+    }
   };
 
   const openModal = () => {
@@ -164,6 +173,30 @@ function SettingsPage() {
               Change API key
             </button>
           </div>
+
+          {/* Plugins Section */}
+          <hr className="border-gray-300 my-6" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Plugins</h3>
+          {plugins.length === 0 ? (
+            <p className="text-gray-500 text-sm">No plugins configured</p>
+          ) : (
+            <div className="space-y-3">
+              {plugins.map((plugin) => (
+                <div key={plugin.id} className="flex items-start justify-between gap-3 py-2">
+                  <div className="flex items-start gap-3">
+                    <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${getStatusColor(plugin.status)}`} />
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-900">{plugin.name}</div>
+                      {plugin.description && (
+                        <div className="text-sm text-gray-600">{plugin.description}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 font-mono text-right">{plugin.url}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -226,17 +259,22 @@ function SettingsPage() {
 // FileSystem Page Component
 function FileSystemPage({ staticFiles }: { staticFiles: StaticFilesResult[] }) {
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Files</h2>
-      {staticFiles.length === 0 ? (
-        <p className="text-gray-500">No static files configured</p>
-      ) : (
-        <div className="space-y-4">
-          {staticFiles.map((result, index) => (
-            <StaticFileCard key={index} result={result} />
-          ))}
-        </div>
-      )}
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-white">
+        <h2 className="text-xl font-semibold text-gray-900">Files</h2>
+        <PluginSelector />
+      </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        {staticFiles.length === 0 ? (
+          <p className="text-gray-500">No static files configured</p>
+        ) : (
+          <div className="space-y-4">
+            {staticFiles.map((result, index) => (
+              <StaticFileCard key={index} result={result} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -246,25 +284,18 @@ export default function App() {
   const [input, setInput] = useState('');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('shipyard_api_key') || '');
   const [commands, setCommands] = useState<SlashCommand[]>([]);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
-  const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [staticFiles, setStaticFiles] = useState<StaticFilesResult[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const location = useLocation();
 
+  const { apiCall, selectedPlugin } = usePlugins();
+
   // Generate session ID for conversation context
   const [sessionId] = useState(() => crypto.randomUUID());
-
-  // Re-read API key when navigating back to chat (in case it was updated in settings)
-  useEffect(() => {
-    if (location.pathname === '/' || location.pathname === '/chat') {
-      setApiKey(localStorage.getItem('shipyard_api_key') || '');
-    }
-  }, [location.pathname]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -274,9 +305,11 @@ export default function App() {
     scrollToBottom();
   }, [messages]);
 
-  // Fetch available commands on mount
+  // Fetch available commands when plugin changes
   useEffect(() => {
-    fetch('/api/commands')
+    if (!selectedPlugin) return;
+
+    apiCall('/commands')
       .then((res) => res.json())
       .then((data) => {
         if (data.commands) {
@@ -284,23 +317,13 @@ export default function App() {
         }
       })
       .catch((err) => console.error('Failed to fetch commands:', err));
-  }, []);
+  }, [selectedPlugin, apiCall]);
 
-  // Fetch app info on mount
+  // Fetch static files when plugin changes
   useEffect(() => {
-    fetch('/api/app/info')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.name) {
-          setAppInfo(data);
-        }
-      })
-      .catch((err) => console.error('Failed to fetch app info:', err));
-  }, []);
+    if (!selectedPlugin) return;
 
-  // Fetch static files on mount
-  useEffect(() => {
-    fetch('/api/static/files')
+    apiCall('/static/files')
       .then((res) => res.json())
       .then((data) => {
         if (data.staticFiles) {
@@ -308,7 +331,7 @@ export default function App() {
         }
       })
       .catch((err) => console.error('Failed to fetch static files:', err));
-  }, []);
+  }, [selectedPlugin, apiCall]);
 
   // Filter commands based on input
   const filteredCommands = input.startsWith('/')
@@ -362,11 +385,22 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/execute', {
+      if (!selectedPlugin) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '**No Plugin Selected**\n\nPlease select a plugin from the dropdown above to start chatting.',
+          },
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await apiCall('/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(apiKey && { 'Authorization': `Bearer ${apiKey}` }),
         },
         body: JSON.stringify({
           prompt: userMessage,
@@ -444,11 +478,9 @@ export default function App() {
       <div className="w-56 bg-gray-900 text-white flex flex-col">
         <div className="p-4 border-b border-gray-700">
           <h1 className="text-lg font-semibold truncate">
-            {appInfo?.name || 'Shipyard'}
+            Claude-Shipyard
           </h1>
-          {appInfo?.description && (
-            <p className="text-xs text-gray-400 truncate">{appInfo.description}</p>
-          )}
+          <p className="text-[12px] text-gray-400 truncate">Share & Monetize your Plugins</p>
         </div>
         <nav className="flex-1 p-2">
           <Link
@@ -471,7 +503,7 @@ export default function App() {
             }`}
           >
             <IoFolderOutline className="w-5 h-5 mr-3" />
-            FileSystem
+            Files
           </Link>
         </nav>
         <div className="p-4 border-t border-gray-700">
@@ -579,45 +611,48 @@ export default function App() {
                       )}
 
                       {/* Bottom toolbar */}
-                      <div className="flex items-center justify-end px-3 py-2 border-t border-gray-100 space-x-2">
-                        <label className="cursor-pointer">
-                          <input
-                            type="file"
-                            multiple
-                            onChange={handleFileUpload}
-                            className="hidden"
-                          />
-                          <div className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded">
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
+                      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100">
+                        <PluginSelector />
+                        <div className="flex items-center space-x-2">
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              multiple
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
+                            <div className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded">
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                                />
+                              </svg>
+                            </div>
+                          </label>
+
+                          <button
+                            type="submit"
+                            disabled={isLoading || !input.trim()}
+                            className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
                               />
                             </svg>
-                          </div>
-                        </label>
-
-                        <button
-                          type="submit"
-                          disabled={isLoading || !input.trim()}
-                          className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                            />
-                          </svg>
-                        </button>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </form>
@@ -742,64 +777,67 @@ export default function App() {
                       )}
 
                       {/* Bottom toolbar */}
-                      <div className="flex items-center justify-end px-3 py-2 border-t border-gray-100 space-x-2">
-                        <label className="cursor-pointer">
-                          <input
-                            type="file"
-                            multiple
-                            onChange={handleFileUpload}
-                            className="hidden"
-                          />
-                          <div className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded">
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                              />
-                            </svg>
-                          </div>
-                        </label>
-
-                        <button
-                          type="submit"
-                          disabled={isLoading || !input.trim()}
-                          className="p-1.5 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {isLoading ? (
-                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
+                      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100">
+                        <PluginSelector />
+                        <div className="flex items-center space-x-2">
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              multiple
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
+                            <div className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded">
+                              <svg
+                                className="w-4 h-4"
                                 fill="none"
-                              />
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                              />
-                            </svg>
-                          )}
-                        </button>
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                                />
+                              </svg>
+                            </div>
+                          </label>
+
+                          <button
+                            type="submit"
+                            disabled={isLoading || !input.trim()}
+                            className="p-1.5 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isLoading ? (
+                              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                  fill="none"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -5,6 +5,7 @@ import { ConfigLoader } from './services/ConfigLoader.js';
 import { InitCommand } from './commands/init.js';
 import { BuildCommand } from './commands/build.js';
 import { RunCommand } from './commands/run.js';
+import { ServeCommand } from './commands/serve.js';
 
 function createProgram(): Command {
   const program = new Command();
@@ -17,6 +18,7 @@ function createProgram(): Command {
   const initCommand = new InitCommand(fileSystem);
   const buildCommand = new BuildCommand(fileSystem, configLoader);
   const runCommand = new RunCommand(configLoader);
+  const serveCommand = new ServeCommand();
 
   program
     .name('shipyard')
@@ -59,6 +61,21 @@ function createProgram(): Command {
     .action(async (options) => {
       try {
         await runCommand.execute(process.cwd(), options);
+      } catch (error) {
+        console.error('Error:', (error as Error).message);
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('serve')
+    .description('Start the web interface')
+    .option('--plugins <urls>', 'Comma-separated plugin container URLs', (val) => val.split(','))
+    .option('--marketplaces <urls>', 'Comma-separated marketplace API URLs', (val) => val.split(','))
+    .option('-p, --port <port>', 'Port for web interface', parseInt)
+    .action(async (options) => {
+      try {
+        await serveCommand.execute(options);
       } catch (error) {
         console.error('Error:', (error as Error).message);
         process.exit(1);

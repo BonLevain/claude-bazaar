@@ -39,6 +39,12 @@ export interface RunOptions {
   env?: Record<string, string>;
 }
 
+export interface ServeOptions {
+  plugins?: string[];
+  marketplaces?: string[];
+  port?: number;
+}
+
 export interface FileSystemService {
   exists(path: string): Promise<boolean>;
   readFile(path: string): Promise<string>;

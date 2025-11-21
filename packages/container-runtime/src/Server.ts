@@ -28,6 +28,18 @@ export class Server {
   }
 
   private setupMiddleware(): void {
+    // CORS middleware - allow requests from any origin for development
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
+
+      if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+      }
+      next();
+    });
+
     this.app.use(express.json({ limit: '10mb' }));
   }
 
