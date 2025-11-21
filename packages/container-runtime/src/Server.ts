@@ -262,7 +262,7 @@ export class Server {
 
   start(): void {
     this.app.listen(this.config.port, () => {
-      console.log(`Shipyard runtime listening on port ${this.config.port}`);
+      console.log(`Bazaar runtime listening on port ${this.config.port}`);
     });
   }
 }

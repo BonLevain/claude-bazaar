@@ -1,6 +1,6 @@
 <div align="center">
 
-# Claude Shipyard
+# Claude Bazaar
 
 ### 🚀 Share and Monetize your Claude Code Projects 💰
 
@@ -10,7 +10,7 @@
 
 You built something cool with Claude Code. Now everyone's asking: "Can I use that?"
 
-**That's why we built Shipyard.**
+**That's why we built Bazaar.**
 
 One command to package, ship, and monitize your project with a slick web interface. Done. Your coworker, your subscribers, your investor, your mom—anyone can use it. No terminal required on their end.
 
@@ -30,10 +30,10 @@ And yeah, you can charge for it too. But we'll get to that.
 
 ## Quick Start
 
-### 1. Install Claude Shipyard
+### 1. Install Claude Bazaar
 
 ```bash
-npm install -g @shipyard/cli
+npm install -g @bazaar/cli
 ```
 
 ### 2. Initialize Your Project
@@ -41,15 +41,15 @@ npm install -g @shipyard/cli
 Navigate to your Claude Code project directory and run:
 
 ```bash
-shipyard init
+claude-bazaar init
 ```
 
-This creates a `claude-shipyard.config.ts` file with your project settings.
+This creates a `claude-bazaar.config.ts` file with your project settings.
 
 ### 3. Build Your Container
 
 ```bash
-shipyard build
+claude-bazaar build
 ```
 
 This packages your project into a Docker container with everything it needs to run.
@@ -57,7 +57,7 @@ This packages your project into a Docker container with everything it needs to r
 ### 4. Run Your Project
 
 ```bash
-shipyard run
+claude-bazaar run
 ```
 
 Your project is now running on `http://localhost:3000`.
@@ -65,7 +65,7 @@ Your project is now running on `http://localhost:3000`.
 ### 5. Launch the Web Interface
 
 ```bash
-shipyard serve
+claude-bazaar serve
 ```
 
 Open `http://localhost:5173` in your browser. You now have a beautiful chat interface connected to your project!
@@ -90,7 +90,7 @@ Open `http://localhost:5173` in your browser. You now have a beautiful chat inte
 
 ## Configuration
 
-Your `claude-shipyard.config.ts` file controls how your project is packaged:
+Your `claude-bazaar.config.ts` file controls how your project is packaged:
 
 ```typescript
 export default {
@@ -136,38 +136,38 @@ export default {
 
 ## CLI Commands
 
-### `shipyard init`
+### `claude-claude-bazaar init`
 
 Interactive setup that creates your configuration file.
 
-### `shipyard build`
+### `claude-claude-bazaar build`
 
 Build a Docker image from your project.
 
 ```bash
-shipyard build                    # Use config defaults
-shipyard build -t myapp:v1        # Custom tag
-shipyard build --push --registry  # Push to registry
+claude-bazaar build                    # Use config defaults
+claude-bazaar build -t myapp:v1        # Custom tag
+claude-bazaar build --push --registry  # Push to registry
 ```
 
-### `shipyard run`
+### `claude-claude-bazaar run`
 
 Run your containerized project.
 
 ```bash
-shipyard run                      # Default port from config
-shipyard run -p 3001              # Custom port
-shipyard run -d                   # Run in background
+claude-bazaar run                      # Default port from config
+claude-bazaar run -p 3001              # Custom port
+claude-bazaar run -d                   # Run in background
 ```
 
-### `shipyard serve`
+### `claude-claude-bazaar serve`
 
 Start the web interface.
 
 ```bash
-shipyard serve                                    # Default: localhost:3000
-shipyard serve --projects http://localhost:3001   # Custom project URL
-shipyard serve -p 8080                            # Custom UI port
+claude-bazaar serve                                    # Default: localhost:3000
+claude-bazaar serve --projects http://localhost:3001   # Custom project URL
+claude-bazaar serve -p 8080                            # Custom UI port
 ```
 
 #### Multiple Projects
@@ -175,7 +175,7 @@ shipyard serve -p 8080                            # Custom UI port
 Connect to multiple running projects:
 
 ```bash
-shipyard serve --projects http://localhost:3000,http://localhost:3001
+claude-bazaar serve --projects http://localhost:3000,http://localhost:3001
 ```
 
 The web interface will show a dropdown to switch between them.
@@ -204,7 +204,7 @@ For production deployments, you can also set `ANTHROPIC_API_KEY` as an environme
 
 ## Learn More
 
-Claude Shipyard builds on Claude Code's powerful plugin system. To learn more about what you can build:
+Claude Bazaar builds on Claude Code's powerful plugin system. To learn more about what you can build:
 
 - [Claude Code Plugins Documentation](https://code.claude.com/docs/en/plugins)
 - [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)
@@ -216,7 +216,7 @@ Claude Shipyard builds on Claude Code's powerful plugin system. To learn more ab
 ### Basic Research Assistant
 
 ```typescript
-// claude-shipyard.config.ts
+// claude-bazaar.config.ts
 export default {
   name: 'research-assistant',
   version: '1.0.0',
@@ -233,7 +233,7 @@ export default {
 ### Data Analyzer with Python
 
 ```typescript
-// claude-shipyard.config.ts
+// claude-bazaar.config.ts
 export default {
   name: 'data-analyzer',
   version: '1.0.0',
@@ -288,8 +288,8 @@ We welcome contributions! Here's how to get started:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/claude-shipyard.git
-cd claude-shipyard
+git clone https://github.com/your-org/claude-bazaar.git
+cd claude-bazaar
 
 # Install dependencies for all packages
 cd packages/cli && npm install
@@ -328,7 +328,7 @@ npm run dev
 
 Business Source License 1.1 (BSL)
 
-You can use Claude Shipyard to build and deploy your own projects—that's the whole point! The license only restricts building a competing hosted marketplace or adding your own monetization features to offer a competing commercial service.
+You can use Claude Bazaar to build and deploy your own projects—that's the whole point! The license only restricts building a competing hosted marketplace or adding your own monetization features to offer a competing commercial service.
 
 See [LICENSE.md](LICENSE.md) for details.
 

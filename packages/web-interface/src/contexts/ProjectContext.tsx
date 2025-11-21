@@ -56,7 +56,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
     };
 
     // Read API key from localStorage for each request
-    const apiKey = localStorage.getItem('shipyard_api_key');
+    const apiKey = localStorage.getItem('bazaar_api_key');
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }

@@ -1,9 +1,9 @@
 {
-  "name": "@shipyard/cli",
+  "name": "@bazaar/cli",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "shipyard": "./dist/index.js"
+    "claude-bazaar": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [

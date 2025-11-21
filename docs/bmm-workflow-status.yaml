@@ -16,7 +16,7 @@
 #   - skipped: Optional/conditional workflow that was skipped
 
 generated: "2025-11-20"
-project: "claude-shipyard"
+project: "claude-bazaar"
 project_type: "product"
 selected_track: "bmad-method"
 field_type: "brownfield"

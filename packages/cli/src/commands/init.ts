@@ -10,10 +10,10 @@ export class InitCommand {
   }
 
   async execute(projectDir: string = process.cwd()): Promise<void> {
-    const configPath = path.join(projectDir, 'claude-shipyard.config.ts');
+    const configPath = path.join(projectDir, 'claude-bazaar.config.ts');
 
     if (await this.fileSystem.exists(configPath)) {
-      console.log('Already initialized (claude-shipyard.config.ts exists)');
+      console.log('Already initialized (claude-bazaar.config.ts exists)');
       return;
     }
 
@@ -34,9 +34,11 @@ export class InitCommand {
     const config = this.generateConfig(projectName, description, runtimeImage, dependencies, staticFiles);
 
     await this.fileSystem.writeFile(configPath, config);
-    console.log('Created claude-shipyard.config.ts');
+    console.log('Created claude-bazaar.config.ts');
 
     await this.updateGitignore(projectDir);
+
+    console.log('\nYou can now run: claude-bazaar build');
   }
 
   private async promptForProjectInfo(defaultName: string): Promise<{ name: string; description: string }> {
@@ -293,7 +295,7 @@ export class InitCommand {
     '!node_modules/**',
     '!.git/**',
     '!dist/**',
-    '!.claude-shipyard/**',
+    '!.claude-bazaar/**',
   ],
 
   // Runtime configuration
@@ -308,17 +310,17 @@ export class InitCommand {
 
   private async updateGitignore(projectDir: string): Promise<void> {
     const gitignorePath = path.join(projectDir, '.gitignore');
-    const shipyardEntry = '.claude-shipyard/';
-    const ignoreContent = `\n# Shipyard\n${shipyardEntry}\n`;
+    const bazaarEntry = '.claude-bazaar/';
+    const ignoreContent = `\n# Bazaar\n${bazaarEntry}\n`;
 
     if (await this.fileSystem.exists(gitignorePath)) {
       const content = await this.fileSystem.readFile(gitignorePath);
-      if (!content.includes(shipyardEntry)) {
+      if (!content.includes(bazaarEntry)) {
         await this.fileSystem.appendFile(gitignorePath, ignoreContent);
         console.log('Updated .gitignore');
       }
     } else {
-      await this.fileSystem.writeFile(gitignorePath, `# Shipyard\n${shipyardEntry}\n`);
+      await this.fileSystem.writeFile(gitignorePath, `# Bazaar\n${bazaarEntry}\n`);
       console.log('Created .gitignore');
     }
   }

@@ -1,7 +1,7 @@
-# Sprint Status - claude-shipyard
+# Sprint Status - claude-bazaar
 # generated: 2025-11-21
-# project: claude-shipyard
-# project_key: claude-shipyard
+# project: claude-bazaar
+# project_key: claude-bazaar
 # tracking_system: file-system
 # story_location: docs/sprint-artifacts
 
@@ -32,8 +32,8 @@
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
 generated: "2025-11-21"
-project: "claude-shipyard"
-project_key: "claude-shipyard"
+project: "claude-bazaar"
+project_key: "claude-bazaar"
 tracking_system: "file-system"
 story_location: "docs/sprint-artifacts"
 

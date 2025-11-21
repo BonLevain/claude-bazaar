@@ -1,4 +1,4 @@
-# @shipyard/cli
+# @bazaar/cli
 
 CLI tool for deploying Claude Code projects as containers.
 
@@ -7,32 +7,32 @@ CLI tool for deploying Claude Code projects as containers.
 ```bash
 npm install
 npm run build
-npm link  # Makes 'shipyard' command available globally
+npm link  # Makes 'bazaar' command available globally
 ```
 
 ## Commands
 
-### `shipyard init`
+### `claude-claude-bazaar init`
 
-Initialize a new Shipyard project in the current directory.
+Initialize a new Bazaar project in the current directory.
 
 ```bash
 cd my-claude-project
-shipyard init
+claude-bazaar init
 ```
 
 Creates:
-- `shipyard.config.ts` - Project configuration
-- Updates `.gitignore` with `.shipyard/`
+- `bazaar.config.ts` - Project configuration
+- Updates `.gitignore` with `.bazaar/`
 
-### `shipyard build`
+### `claude-claude-bazaar build`
 
 Build a Docker image for your project.
 
 ```bash
-shipyard build
-shipyard build -t my-plugin:latest
-shipyard build --push --registry docker.io/myuser
+claude-bazaar build
+claude-bazaar build -t my-plugin:latest
+claude-bazaar build --push --registry docker.io/myuser
 ```
 
 Options:
@@ -41,11 +41,11 @@ Options:
 - `--registry <registry>` - Container registry URL
 
 Creates:
-- `.shipyard/Dockerfile` - Generated Dockerfile
+- `.bazaar/Dockerfile` - Generated Dockerfile
 
 ## Configuration
 
-### `shipyard.config.ts`
+### `claude-bazaar.config.ts`
 
 ```typescript
 export default {
@@ -59,7 +59,7 @@ export default {
     '!node_modules/**',
     '!.git/**',
     '!dist/**',
-    '!.shipyard/**',
+    '!.bazaar/**',
   ],
 
   // Runtime configuration
@@ -73,13 +73,13 @@ export default {
 ## Prerequisites
 
 - Docker installed and running
-- `@shipyard/container-runtime` installed as a dependency
+- `@bazaar/container-runtime` installed as a dependency
 
 ## Workflow
 
 1. Create your Claude Code project with commands, agents, or hooks
-2. Run `shipyard init` to create configuration
-3. Run `shipyard build` to create Docker image
+2. Run `claude-claude-bazaar init` to create configuration
+3. Run `claude-claude-bazaar build` to create Docker image
 4. Run the container:
 
 ```bash

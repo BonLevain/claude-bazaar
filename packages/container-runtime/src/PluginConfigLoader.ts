@@ -10,12 +10,12 @@ export class PluginConfigLoader {
   }
 
   async load(): Promise<PluginConfig | undefined> {
-    const configPath = path.join(this.pluginDir, 'claude-shipyard.config.ts');
+    const configPath = path.join(this.pluginDir, 'claude-bazaar.config.ts');
 
     try {
       await fs.access(configPath);
     } catch {
-      console.log('No claude-shipyard.config.ts found in plugin directory');
+      console.log('No claude-bazaar.config.ts found in plugin directory');
       return undefined;
     }
 

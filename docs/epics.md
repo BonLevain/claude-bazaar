@@ -1,4 +1,4 @@
-# claude-shipyard - Epic Breakdown
+# claude-bazaar - Epic Breakdown
 
 **Author:** BMad
 **Date:** 2025-11-21
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document provides the complete epic and story breakdown for claude-shipyard, decomposing the requirements from the PRD into implementable stories.
+This document provides the complete epic and story breakdown for claude-bazaar, decomposing the requirements from the PRD into implementable stories.
 
 **Living Document Notice:** This is the initial version created from PRD and Architecture documents. No UX Design available - stories focus on technical implementation.
 
@@ -105,7 +105,7 @@ So that I can use Python, Node, or any custom image for my plugin.
 
 **Acceptance Criteria:**
 
-**Given** I run `claude-shipyard init`
+**Given** I run `claude-bazaar init`
 **When** the CLI reaches runtime configuration
 **Then** I see options: "Node.js (default)", "Python", "Custom Docker image"
 
@@ -113,13 +113,13 @@ So that I can use Python, Node, or any custom image for my plugin.
 **And** if I select "Python", the config sets `runtime: "python:3.11-slim"`
 **And** if I select "Custom", I'm prompted for the full image name
 
-**And** the selection is saved to `shipyard.config.ts` under `server.runtime`
+**And** the selection is saved to `bazaar.config.ts` under `server.runtime`
 
 **Prerequisites:** Epic 1 (init command exists)
 
 **Technical Notes:**
 - Update `src/commands/init.ts` to add runtime prompts
-- Add runtime field to `ShipyardConfig` schema in `packages/core`
+- Add runtime field to `BazaarConfig` schema in `packages/core`
 - Validate custom images follow Docker image naming conventions
 
 ---
@@ -144,7 +144,7 @@ So that my Python requirements or other dependencies are installed in the contai
 **When** the CLI asks about dependencies
 **Then** I can specify any dependency file path and install command
 
-**And** configuration is saved to `shipyard.config.ts` under `server.dependencies`
+**And** configuration is saved to `bazaar.config.ts` under `server.dependencies`
 
 **Prerequisites:** Story 4.1
 
@@ -163,7 +163,7 @@ So that I can serve assets, documentation, or UI files from my container.
 
 **Acceptance Criteria:**
 
-**Given** I run `claude-shipyard init`
+**Given** I run `claude-bazaar init`
 **When** the CLI reaches static file configuration
 **Then** I'm asked "Do you want to serve static files? (y/n)"
 
@@ -173,7 +173,7 @@ So that I can serve assets, documentation, or UI files from my container.
 
 **And** I can specify URL paths for each folder (e.g., `/static`, `/docs`)
 
-**And** configuration is saved to `shipyard.config.ts` under `staticFiles`
+**And** configuration is saved to `bazaar.config.ts` under `staticFiles`
 
 **Prerequisites:** Story 4.1
 
@@ -193,11 +193,11 @@ So that my dependencies are properly installed in the container.
 **Acceptance Criteria:**
 
 **Given** config has `runtime: "python:3.11-slim"` and `dependencies.file: "requirements.txt"`
-**When** I run `claude-shipyard build`
+**When** I run `claude-bazaar build`
 **Then** generated Dockerfile includes Python base image and pip install
 
 **Given** config has `runtime: "node:20-slim"` and `package.json` exists
-**When** I run `claude-shipyard build`
+**When** I run `claude-bazaar build`
 **Then** generated Dockerfile includes Node base image and npm ci
 
 **And** Claude Code is always installed regardless of runtime
@@ -220,7 +220,7 @@ So that static assets are served efficiently without hitting the application ser
 **Acceptance Criteria:**
 
 **Given** config has `staticFiles` configured
-**When** I run `claude-shipyard build`
+**When** I run `claude-bazaar build`
 **Then** an `nginx.conf` is generated with location blocks for each static folder
 
 **And** Dockerfile includes nginx installation and configuration
@@ -268,7 +268,7 @@ So that only authenticated users can access my static assets.
 - Use nginx `auth_request` directive
 - Create lightweight auth endpoint in container runtime
 - Support both local API key and remote auth service
-- Add `staticAuth` config option: `"local" | "shipyard" | "none"`
+- Add `staticAuth` config option: `"local" | "bazaar" | "none"`
 
 ---
 

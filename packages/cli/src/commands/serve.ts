@@ -21,7 +21,7 @@ export class ServeCommand {
       process.exit(1);
     }
 
-    console.log(`Starting Claude Shipyard UI on port ${port}...`);
+    console.log(`Starting Claude Bazaar UI on port ${port}...`);
     console.log(`Projects: ${projects.join(', ')}`);
 
     // Read and modify index.html to inject runtime config
@@ -31,7 +31,7 @@ export class ServeCommand {
     // Inject runtime config script before </head>
     const configScript = `
     <script>
-      window.__SHIPYARD_CONFIG__ = {
+      window.__BAZAAR_CONFIG__ = {
         projects: ${JSON.stringify(projects)}
       };
     </script>`;

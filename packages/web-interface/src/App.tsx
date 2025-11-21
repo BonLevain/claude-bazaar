@@ -120,7 +120,7 @@ function StaticFileCard({ result }: { result: StaticFilesResult }) {
 
 // Settings Page Component
 function SettingsPage() {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('shipyard_api_key') || '');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('bazaar_api_key') || '');
   const [showModal, setShowModal] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
   const { projects } = useProjects();
@@ -149,7 +149,7 @@ function SettingsPage() {
 
   const saveApiKey = () => {
     setApiKey(tempApiKey);
-    localStorage.setItem('shipyard_api_key', tempApiKey);
+    localStorage.setItem('bazaar_api_key', tempApiKey);
     setShowModal(false);
   };
 
@@ -478,7 +478,7 @@ export default function App() {
       <div className="w-56 bg-gray-900 text-white flex flex-col">
         <div className="p-4 border-b border-gray-700">
           <h1 className="text-lg font-semibold truncate">
-            Claude-Shipyard
+            Claude-Bazaar
           </h1>
           <p className="text-[12px] text-gray-400 truncate">Share & Monetize your Plugins</p>
         </div>
@@ -850,7 +850,7 @@ export default function App() {
 
         {/* Footer */}
         <div className="py-2 text-center">
-          <p className="text-xs text-gray-400">powered by claude-shipyard</p>
+          <p className="text-xs text-gray-400">powered by claude-bazaar</p>
         </div>
       </div>
     </div>

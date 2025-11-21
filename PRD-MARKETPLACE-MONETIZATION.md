@@ -1,11 +1,11 @@
-# Claude Shipyard Marketplace Monetization PRD
+# Claude Bazaar Marketplace Monetization PRD
 
 ## Overview
 
 This document outlines the architecture for a Claude Code plugin marketplace that enables creators to monetize their plugins while protecting their intellectual property. The core innovation is running headless Claude Code instances server-side, ensuring prompts and logic are protected.
 
-Claude Shipyard supports two deployment paths:
-1. **Shipyard Marketplace (Monetized)** - Plugins hosted on Shipyard infrastructure with auth/billing middleware
+Claude Bazaar supports two deployment paths:
+1. **Bazaar Marketplace (Monetized)** - Plugins hosted on Bazaar infrastructure with auth/billing middleware
 2. **Self-Hosted (Open Source)** - Users deploy plugins to their own infrastructure
 
 ## Problem Statement
@@ -26,7 +26,7 @@ Claude Shipyard supports two deployment paths:
 
 ### Access Methods
 
-Claude Shipyard supports multiple ways for users to interact with containerized plugins:
+Claude Bazaar supports multiple ways for users to interact with containerized plugins:
 
 1. **Web Interface** (Simplest) - Browser-based chat UI for immediate access
 2. **API/HTTP** - Direct HTTP calls for integration into other tools
@@ -40,7 +40,7 @@ The **web interface** is the recommended starting point for creators as it:
 
 ### Architecture Overview
 
-#### Path 1: Shipyard Marketplace (Monetized)
+#### Path 1: Bazaar Marketplace (Monetized)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -58,7 +58,7 @@ The **web interface** is the recommended starting point for creators as it:
               │
               ▼
 ┌─────────────────────────────────────────────────────────┐
-│ Shipyard Infrastructure (Shipyard's AWS)                 │
+│ Bazaar Infrastructure (Bazaar's AWS)                 │
 │                                                          │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │ API Gateway / Load Balancer                      │    │
@@ -178,7 +178,7 @@ The simplest way for users to interact with a containerized plugin. Creators get
 
 ```bash
 # Creator shares URL
-https://my-plugin.shipyard.run
+https://my-plugin.bazaar.run
 
 # User opens in browser
 # → Enters prompt: "Analyze this code for security issues"
@@ -232,7 +232,7 @@ The key to making marketplace plugins feel native is generating thin clients tha
 #### Architecture Overview
 
 ```
-User's Machine                         Shipyard Infrastructure
+User's Machine                         Bazaar Infrastructure
 ┌─────────────────────────┐           ┌─────────────────────────┐
 │ Thin Client Plugin      │           │ Container               │
 │                         │           │                         │
@@ -246,7 +246,7 @@ User's Machine                         Shipyard Infrastructure
 │ hooks (config) ────────────────────►│   hooks (actual scripts)│
 │                         │           │                         │
 │ mcpServers:             │           │   mcpServers:           │
-│   shipyard-proxy ───────────────────►│   (original servers)    │
+│   bazaar-proxy ───────────────────►│   (original servers)    │
 └─────────────────────────┘           └─────────────────────────┘
 ```
 
@@ -267,7 +267,7 @@ Use the local database to check against known CVEs...
 ```markdown
 ---
 description: Analyze code for security vulnerabilities
-mcp: shipyard-proxy
+mcp: bazaar-proxy
 tool: execute_command
 args:
   command: analyze
@@ -289,7 +289,7 @@ You are a security reviewer agent with deep expertise in OWASP top 10...
 **Generated Thin Client:** `agents/reviewer.md`
 ```markdown
 ---
-mcp: shipyard-proxy
+mcp: bazaar-proxy
 tool: invoke_agent
 args:
   agent: reviewer
@@ -320,7 +320,7 @@ Invoke the remote security reviewer agent. Pass through all context and task det
       "matcher": "Write|Edit",
       "hooks": [{
         "type": "mcp",
-        "server": "shipyard-proxy",
+        "server": "bazaar-proxy",
         "tool": "execute_hook",
         "args": {
           "hook": "PostToolUse",
@@ -348,11 +348,11 @@ Invoke the remote security reviewer agent. Pass through all context and task det
 ```json
 {
   "mcpServers": {
-    "shipyard-proxy": {
+    "bazaar-proxy": {
       "type": "http",
-      "url": "https://api.shipyard.run/plugins/security-analyzer/mcp",
+      "url": "https://api.bazaar.run/plugins/security-analyzer/mcp",
       "headers": {
-        "Authorization": "Bearer ${SHIPYARD_API_KEY}"
+        "Authorization": "Bearer ${BAZAAR_API_KEY}"
       }
     }
   }
@@ -361,13 +361,13 @@ Invoke the remote security reviewer agent. Pass through all context and task det
 
 The proxy exposes all tools from `database` and `api-client` under namespaced names (e.g., `database_query`, `api_fetch`).
 
-#### Shipyard MCP Proxy Server (Container-Side)
+#### Bazaar MCP Proxy Server (Container-Side)
 
 Each container runs an MCP server that proxies requests to the actual plugin components:
 
 ```typescript
 // Container-side MCP server that proxies to actual plugin components
-class ShipyardMCPProxy {
+class BazaarMCPProxy {
   private plugin: Plugin;
   private claudeCode: HeadlessClaudeCode;
 
@@ -431,7 +431,7 @@ class ShipyardMCPProxy {
 #### Complete Thin Client Structure
 
 ```
-plugins/security-analyzer/          # In Shipyard marketplace repo
+plugins/security-analyzer/          # In Bazaar marketplace repo
 ├── plugin.json                     # Thin config with MCP proxy
 ├── commands/
 │   ├── analyze.md                  # Stub → MCP execute_command
@@ -451,10 +451,10 @@ async function generateThinClient(creatorPlugin: Plugin): Promise<ThinClient> {
     description: `${creatorPlugin.description}`,
     version: creatorPlugin.version,
     mcpServers: {
-      'shipyard-proxy': {
+      'bazaar-proxy': {
         type: 'http',
-        url: `https://api.shipyard.run/plugins/${creatorPlugin.name}/mcp`,
-        headers: { Authorization: 'Bearer ${SHIPYARD_API_KEY}' }
+        url: `https://api.bazaar.run/plugins/${creatorPlugin.name}/mcp`,
+        headers: { Authorization: 'Bearer ${BAZAAR_API_KEY}' }
       }
     },
     commands: [],
@@ -487,7 +487,7 @@ async function generateThinClient(creatorPlugin: Plugin): Promise<ThinClient> {
         matcher: h.matcher,
         hooks: [{
           type: 'mcp',
-          server: 'shipyard-proxy',
+          server: 'bazaar-proxy',
           tool: 'execute_hook',
           args: { hook: event, plugin: creatorPlugin.name, matcher: h.matcher }
         }]
@@ -501,7 +501,7 @@ async function generateThinClient(creatorPlugin: Plugin): Promise<ThinClient> {
 function generateCommandStub(pluginName: string, commandName: string, description: string): string {
   return `---
 description: ${description}
-mcp: shipyard-proxy
+mcp: bazaar-proxy
 tool: execute_command
 args:
   command: ${commandName}
@@ -513,7 +513,7 @@ Execute the ${commandName} command. Context and files will be passed to the remo
 
 function generateAgentStub(pluginName: string, agentName: string, description: string): string {
   return `---
-mcp: shipyard-proxy
+mcp: bazaar-proxy
 tool: invoke_agent
 args:
   agent: ${agentName}
@@ -530,7 +530,7 @@ From the user's perspective, marketplace plugins are indistinguishable from loca
 
 ```bash
 # Install (gets thin client with stubs)
-/plugin install security-analyzer@shipyard
+/plugin install security-analyzer@bazaar
 
 # Use commands - works exactly like local
 /project:security-analyzer analyze src/
@@ -548,22 +548,22 @@ From the user's perspective, marketplace plugins are indistinguishable from loca
 # (internally routed through MCP)
 
 # Even MCP tools from original plugin work
-# (exposed through shipyard-proxy with namespacing)
+# (exposed through bazaar-proxy with namespacing)
 ```
 
-The user never knows the actual prompts, agents, and logic are running remotely in a Shipyard container.
+The user never knows the actual prompts, agents, and logic are running remotely in a Bazaar container.
 
 #### MCP Configuration (.mcp.json)
 
-**For Shipyard Marketplace:**
+**For Bazaar Marketplace:**
 ```json
 {
   "mcpServers": {
-    "shipyard-proxy": {
+    "bazaar-proxy": {
       "type": "http",
-      "url": "https://api.shipyard.run/plugins/security-analyzer/mcp",
+      "url": "https://api.bazaar.run/plugins/security-analyzer/mcp",
       "headers": {
-        "Authorization": "Bearer ${SHIPYARD_API_KEY}"
+        "Authorization": "Bearer ${BAZAAR_API_KEY}"
       }
     }
   }
@@ -574,7 +574,7 @@ The user never knows the actual prompts, agents, and logic are running remotely 
 ```json
 {
   "mcpServers": {
-    "shipyard-proxy": {
+    "bazaar-proxy": {
       "type": "http",
       "url": "http://localhost:3000/mcp",
       "headers": {
@@ -585,12 +585,12 @@ The user never knows the actual prompts, agents, and logic are running remotely 
 }
 ```
 
-### Component 2: Shipyard Middleware (Marketplace Only)
+### Component 2: Bazaar Middleware (Marketplace Only)
 
-All marketplace requests flow through Shipyard's auth/billing middleware before reaching the plugin container.
+All marketplace requests flow through Bazaar's auth/billing middleware before reaching the plugin container.
 
 ```typescript
-// Shipyard API Gateway middleware
+// Bazaar API Gateway middleware
 app.post('/plugins/:pluginId/execute', async (req, res) => {
   const { pluginId } = req.params;
   const apiKey = req.headers.authorization?.split(' ')[1];
@@ -604,7 +604,7 @@ app.post('/plugins/:pluginId/execute', async (req, res) => {
   if (!subscription?.active) {
     return res.status(403).json({
       error: 'Subscription required',
-      subscribeUrl: `https://shipyard.run/subscribe/${pluginId}`
+      subscribeUrl: `https://bazaar.run/subscribe/${pluginId}`
     });
   }
 
@@ -732,13 +732,13 @@ my-premium-plugin/
 │   │   └── index.ts
 │   ├── package.json
 │   └── Dockerfile
-├── shipyard.config.ts         # Deployment configuration
+├── bazaar.config.ts         # Deployment configuration
 └── pricing.json               # Pricing tiers
 ```
 
-### Component 4: Shipyard Configuration
+### Component 4: Bazaar Configuration
 
-#### shipyard.config.ts
+#### bazaar.config.ts
 
 ```typescript
 export default {
@@ -747,7 +747,7 @@ export default {
   // What to include in thin client
   thinClient: {
     include: ['public/**/*'],
-    mcpEndpoint: '${SHIPYARD_SERVER_URL}/execute',
+    mcpEndpoint: '${BAZAAR_SERVER_URL}/execute',
   },
 
   // Server deployment
@@ -785,11 +785,11 @@ export default {
 
 ## Publishing Flow
 
-### Path 1: Shipyard Marketplace (Monetized)
+### Path 1: Bazaar Marketplace (Monetized)
 
 ```bash
 # Initialize a monetized plugin
-claude-shipyard init --type marketplace
+claude-bazaar init --type marketplace
 
 # Develop the plugin locally
 # - Write prompts in /plugin/commands/
@@ -797,38 +797,38 @@ claude-shipyard init --type marketplace
 # - Build server in /server/
 
 # Validate before publishing
-claude-shipyard validate
+claude-bazaar validate
 
-# Publish to Shipyard marketplace
-claude-shipyard publish --target marketplace
+# Publish to Bazaar marketplace
+claude-bazaar publish --target marketplace
 
 # Output:
 # ✓ GitHub App authorized for repo access
 # ✓ Source code pulled from your repo
 # ✓ Generated thin client (no prompts exposed)
 # ✓ Built server Docker image
-# ✓ Pushed to Shipyard ECR
-# ✓ Created ECS service in Shipyard infrastructure
+# ✓ Pushed to Bazaar ECR
+# ✓ Created ECS service in Bazaar infrastructure
 # ✓ Registered in marketplace manifest
 # ✓ Stripe Connect configured
 #
 # Your plugin is live at:
-#   /plugin install security-analyzer@shipyard-marketplace
+#   /plugin install security-analyzer@bazaar-marketplace
 #
 # Creator dashboard:
-#   https://shipyard.run/dashboard/security-analyzer
+#   https://bazaar.run/dashboard/security-analyzer
 ```
 
 ### Path 2: Self-Hosted (Open Source)
 
 ```bash
 # Initialize a self-hosted plugin
-claude-shipyard init --type self-hosted
+claude-bazaar init --type self-hosted
 
 # Develop the plugin locally
 
 # Build and run container locally
-claude-shipyard serve
+claude-bazaar serve
 
 # Output:
 # ✓ Built Docker image: my-plugin:latest
@@ -839,7 +839,7 @@ claude-shipyard serve
 #   claude plugin install ./dist/thin-client
 
 # Or deploy to your own infrastructure
-claude-shipyard build
+claude-bazaar build
 
 # Output:
 # ✓ Docker image: my-plugin:latest
@@ -851,15 +851,15 @@ claude-shipyard build
 
 ### GitHub App for Source Code Access (Marketplace)
 
-When publishing to the Shipyard marketplace, creators authorize the Shipyard GitHub App to access their repository. This is required because Shipyard hosts the plugin containers.
+When publishing to the Bazaar marketplace, creators authorize the Bazaar GitHub App to access their repository. This is required because Bazaar hosts the plugin containers.
 
 ```typescript
 // GitHub App workflow
-// 1. Creator runs: claude-shipyard publish --target marketplace
+// 1. Creator runs: claude-bazaar publish --target marketplace
 // 2. CLI opens browser for GitHub App authorization
-// 3. Shipyard clones the repo (read-only access)
+// 3. Bazaar clones the repo (read-only access)
 // 4. Builds container image from source
-// 5. Deploys to Shipyard's ECS
+// 5. Deploys to Bazaar's ECS
 // 6. Registers in marketplace
 
 interface GitHubAppPermissions {
@@ -870,16 +870,16 @@ interface GitHubAppPermissions {
 ```
 
 **Legal Requirements:**
-- Creator agrees to Terms of Service granting Shipyard license to host/run code
+- Creator agrees to Terms of Service granting Bazaar license to host/run code
 - Source code is stored securely, not accessible to end users
 - Creator retains full ownership and can unpublish at any time
 
 ### Marketplace Structure (Claude Code Native)
 
-The Shipyard marketplace follows Claude Code's native marketplace format at `.claude-plugin/marketplace.json`:
+The Bazaar marketplace follows Claude Code's native marketplace format at `.claude-plugin/marketplace.json`:
 
 ```
-https://github.com/shipyard-marketplace/registry
+https://github.com/bazaar-marketplace/registry
 ├── .claude-plugin/
 │   └── marketplace.json        # Claude Code marketplace manifest
 ├── plugins/
@@ -900,10 +900,10 @@ https://github.com/shipyard-marketplace/registry
 
 ```json
 {
-  "name": "shipyard-marketplace",
+  "name": "bazaar-marketplace",
   "owner": {
-    "name": "Shipyard",
-    "email": "marketplace@shipyard.run"
+    "name": "Bazaar",
+    "email": "marketplace@bazaar.run"
   },
   "metadata": {
     "description": "Monetized Claude Code plugins",
@@ -919,7 +919,7 @@ https://github.com/shipyard-marketplace/registry
         "name": "Alice",
         "email": "alice@example.com"
       },
-      "homepage": "https://shipyard.run/plugins/security-analyzer",
+      "homepage": "https://bazaar.run/plugins/security-analyzer",
       "license": "Proprietary",
       "keywords": ["security", "vulnerabilities", "OWASP"],
       "category": "security",
@@ -940,13 +940,13 @@ https://github.com/shipyard-marketplace/registry
 }
 ```
 
-#### Internal Metadata (Shipyard Backend)
+#### Internal Metadata (Bazaar Backend)
 
-Shipyard maintains additional metadata not exposed in the Claude Code marketplace:
+Bazaar maintains additional metadata not exposed in the Claude Code marketplace:
 
 ```typescript
-// Stored in Shipyard database, not in marketplace repo
-interface ShipyardPluginMetadata {
+// Stored in Bazaar database, not in marketplace repo
+interface BazaarPluginMetadata {
   pluginId: string;
 
   // Creator info
@@ -956,7 +956,7 @@ interface ShipyardPluginMetadata {
     githubRepo: string;        // Source code location
   };
 
-  // Pricing (displayed on shipyard.run, not in thin client)
+  // Pricing (displayed on bazaar.run, not in thin client)
   pricing: {
     model: 'subscription' | 'usage';
     tiers: Array<{
@@ -985,41 +985,41 @@ interface ShipyardPluginMetadata {
 #### How Users Install
 
 ```bash
-# Add Shipyard marketplace (one time)
-/plugin marketplace add shipyard-marketplace/registry
+# Add Bazaar marketplace (one time)
+/plugin marketplace add bazaar-marketplace/registry
 
 # Browse available plugins
 /plugin
 
 # Install a plugin (gets the thin client)
-/plugin install security-analyzer@shipyard-marketplace
+/plugin install security-analyzer@bazaar-marketplace
 
 # First run prompts for subscription
 /project:security-analyzer analyze src/
 # → "This plugin requires a subscription. Subscribe at:
-#    https://shipyard.run/subscribe/security-analyzer"
+#    https://bazaar.run/subscribe/security-analyzer"
 ```
 
 ### What Each Publish Target Does
 
-**`claude-shipyard publish --target marketplace`**
+**`claude-bazaar publish --target marketplace`**
 1. **Authorizes** GitHub App for repo access
-2. **Clones** source code to Shipyard build system
+2. **Clones** source code to Bazaar build system
 3. **Validates** plugin structure and configuration
 4. **Generates thin client** from `public/` directory
 5. **Builds Docker image** with full plugin + server
-6. **Pushes to Shipyard ECR** (your infrastructure)
-7. **Deploys ECS service** in Shipyard's AWS
+6. **Pushes to Bazaar ECR** (your infrastructure)
+7. **Deploys ECS service** in Bazaar's AWS
 8. **Uploads thin client** to marketplace registry repo
 9. **Registers plugin** in manifest with pricing
 10. **Configures Stripe Connect** for revenue splitting
 
-**`claude-shipyard serve`** (self-hosted, local dev)
+**`claude-bazaar serve`** (self-hosted, local dev)
 1. **Builds Docker image** locally
 2. **Runs container** on localhost
 3. **Generates thin client** pointing to localhost
 
-**`claude-shipyard build`** (self-hosted, production)
+**`claude-bazaar build`** (self-hosted, production)
 1. **Builds Docker image** tagged for deployment
 2. **Generates thin client** (user updates endpoint manually)
 3. **Outputs deployment instructions** for user's infrastructure
@@ -1033,11 +1033,11 @@ interface ShipyardPluginMetadata {
 /plugin
 
 # Selects a premium plugin
-/plugin install security-analyzer@shipyard-marketplace
+/plugin install security-analyzer@bazaar-marketplace
 
 # Claude Code prompts:
 # "This plugin requires a subscription. Set up at:
-#  https://shipyard.dev/subscribe/security-analyzer
+#  https://bazaar.dev/subscribe/security-analyzer
 #
 #  After subscribing, run:
 #  /security-analyzer auth"
@@ -1059,8 +1059,8 @@ interface ShipyardPluginMetadata {
 2. Thin client command tells Claude to:
    - Read files in `src/auth/`
    - Call `execute_remote` MCP tool with prompt + files
-3. MCP tool POSTs to `api.shipyard.run/plugins/security-analyzer/execute`
-4. **Shipyard middleware**:
+3. MCP tool POSTs to `api.bazaar.run/plugins/security-analyzer/execute`
+4. **Bazaar middleware**:
    - Validates API key
    - Checks subscription active
    - Applies rate limiting
@@ -1069,7 +1069,7 @@ interface ShipyardPluginMetadata {
 7. Container spawns headless Claude Code with full plugin
 8. Claude Code executes the real command with real prompts
 9. Response streams back via SSE
-10. Shipyard middleware tracks usage for billing
+10. Bazaar middleware tracks usage for billing
 11. User sees output in their terminal
 
 ### Execution Flow (Self-Hosted)
@@ -1089,20 +1089,20 @@ interface ShipyardPluginMetadata {
 
 ```
 ┌─────────────┐     ┌─────────────────┐     ┌──────────────┐
-│ End User    │────▶│ Shipyard        │────▶│ Creator's    │
+│ End User    │────▶│ Bazaar        │────▶│ Creator's    │
 │             │     │ Payment Gateway │     │ Stripe Acct  │
 └─────────────┘     └─────────────────┘     └──────────────┘
                            │
                            │ Platform fee (20%)
                            ▼
                     ┌─────────────────┐
-                    │ Shipyard's      │
+                    │ Bazaar's      │
                     │ Stripe Acct     │
                     └─────────────────┘
 ```
 
 - Creators connect their Stripe account during onboarding
-- User payments go through Shipyard
+- User payments go through Bazaar
 - Automatic 80/20 split (configurable)
 - Monthly payouts to creators
 
@@ -1117,8 +1117,8 @@ Creators set their own prices. Recommended model:
 | Team | $99.99/mo | 5,000 | Teams |
 
 **Cost Structure:**
-- Shipyard covers infrastructure costs (ECS, API Gateway, storage)
-- Claude API costs are covered by Shipyard from platform revenue
+- Bazaar covers infrastructure costs (ECS, API Gateway, storage)
+- Claude API costs are covered by Bazaar from platform revenue
 - Creators receive net revenue after platform fee
 
 ## Technical Challenges & Solutions
@@ -1193,10 +1193,10 @@ async function executeRemote(prompt: string, paths: string[]) {
 
 ### Prompt Protection
 
-- Prompts stay in Shipyard-hosted containers (not accessible to end users)
+- Prompts stay in Bazaar-hosted containers (not accessible to end users)
 - No way for user to inspect container filesystem
 - API responses only contain output, not prompts
-- Source code stored in Shipyard's secure infrastructure
+- Source code stored in Bazaar's secure infrastructure
 
 ### User Data Protection
 
@@ -1235,17 +1235,17 @@ async function executeRemote(prompt: string, paths: string[]) {
 ### Phase 1: Core Infrastructure
 - [ ] Thin client generation from full plugin
 - [ ] Basic server template
-- [ ] `claude-shipyard serve` command (local development)
-- [ ] `claude-shipyard build` command (self-hosted production)
+- [ ] `claude-bazaar serve` command (local development)
+- [ ] `claude-bazaar build` command (self-hosted production)
 - [ ] Docker container template with headless Claude Code
 
-### Phase 2: Shipyard Marketplace Infrastructure
+### Phase 2: Bazaar Marketplace Infrastructure
 - [ ] GitHub App for source code access
-- [ ] Shipyard ECS deployment pipeline
+- [ ] Bazaar ECS deployment pipeline
 - [ ] Auth/billing middleware
 - [ ] Marketplace registry (GitHub repo)
 - [ ] Stripe Connect integration
-- [ ] `claude-shipyard publish --target marketplace` command
+- [ ] `claude-bazaar publish --target marketplace` command
 
 ### Phase 3: User Experience
 - [ ] Streaming response support
