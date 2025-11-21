@@ -104,7 +104,7 @@ export class Server {
             success: false,
             error: 'Authentication required',
             code: 'AUTH_REQUIRED',
-            hint: 'Provide API key via Authorization: Bearer header, x-api-key header, or apiKey in body',
+            hint: 'API key required. Go to <a href="/settings">settings</a> to add your API key.',
           };
           return res.status(401).json(errorResponse);
         }
@@ -134,7 +134,7 @@ export class Server {
             success: false,
             error: 'Authentication required',
             code: 'AUTH_REQUIRED',
-            hint: 'Provide API key via Authorization: Bearer header, x-api-key header, or apiKey in body',
+            hint: 'API key required. Go to <a href="/settings">settings</a> to add your API key.',
           };
           return res.status(401).json(errorResponse);
         }
