@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { IoChatbubbleOutline, IoFolderOutline } from 'react-icons/io5';
+import { IoChatbubbleOutline, IoFolderOutline, IoSettingsOutline } from 'react-icons/io5';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -120,43 +121,150 @@ function StaticFileCard({ result }: { result: StaticFilesResult }) {
   );
 }
 
+// Settings Page Component
+function SettingsPage() {
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('shipyard_api_key') || '');
+  const [showModal, setShowModal] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState('');
+
+  const getMaskedKey = (key: string) => {
+    if (!key) return 'Not configured';
+    if (key.length <= 10) return '••••••••';
+    return `${key.slice(0, 7)}...${key.slice(-4)}`;
+  };
+
+  const openModal = () => {
+    setTempApiKey('');
+    setShowModal(true);
+  };
+
+  const saveApiKey = () => {
+    setApiKey(tempApiKey);
+    localStorage.setItem('shipyard_api_key', tempApiKey);
+    setShowModal(false);
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6 flex justify-center">
+      <div className="w-full max-w-2xl">
+        <div className="bg-gray-50 rounded-lg p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Settings</h2>
+          <hr className="border-gray-300 mb-6" />
+
+          {/* API Key Row */}
+          <div className="flex items-center justify-between py-4">
+            <div>
+              <div className="font-semibold text-gray-900">Anthropic API Key</div>
+              <div className="text-gray-600 text-sm">{getMaskedKey(apiKey)}</div>
+            </div>
+            <button
+              onClick={openModal}
+              className="px-4 py-2 border border-gray-400 rounded-lg text-gray-700 hover:bg-gray-100"
+            >
+              Change API key
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-50 rounded-lg p-8 w-full max-w-lg mx-4 relative">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Change API key</h3>
+
+            <p className="text-sm text-gray-600 mb-4">
+              Get your API key from{' '}
+              <a
+                href="https://console.anthropic.com/settings/keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                console.anthropic.com
+              </a>
+            </p>
+
+            <input
+              type="password"
+              value={tempApiKey}
+              onChange={(e) => setTempApiKey(e.target.value)}
+              placeholder="sk-ant-..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 mb-6"
+            />
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveApiKey}
+                className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// FileSystem Page Component
+function FileSystemPage({ staticFiles }: { staticFiles: StaticFilesResult[] }) {
+  return (
+    <div className="flex-1 overflow-y-auto p-6">
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Files</h2>
+      {staticFiles.length === 0 ? (
+        <p className="text-gray-500">No static files configured</p>
+      ) : (
+        <div className="space-y-4">
+          {staticFiles.map((result, index) => (
+            <StaticFileCard key={index} result={result} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('shipyard_api_key') || '');
-  const [showSettings, setShowSettings] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState('');
   const [commands, setCommands] = useState<SlashCommand[]>([]);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [staticFiles, setStaticFiles] = useState<StaticFilesResult[]>([]);
-  const [activeView, setActiveView] = useState<'chat' | 'filesystem'>('chat');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const location = useLocation();
 
   // Generate session ID for conversation context
   const [sessionId] = useState(() => crypto.randomUUID());
 
-  const saveApiKey = () => {
-    setApiKey(tempApiKey);
-    localStorage.setItem('shipyard_api_key', tempApiKey);
-    setShowSettings(false);
-  };
-
-  const clearApiKey = () => {
-    setApiKey('');
-    setTempApiKey('');
-    localStorage.removeItem('shipyard_api_key');
-  };
-
-  const getMaskedKey = (key: string) => {
-    if (!key) return '';
-    if (key.length <= 10) return '••••••••';
-    return `${key.slice(0, 7)}...${key.slice(-4)}`;
-  };
+  // Re-read API key when navigating back to chat (in case it was updated in settings)
+  useEffect(() => {
+    if (location.pathname === '/' || location.pathname === '/chat') {
+      setApiKey(localStorage.getItem('shipyard_api_key') || '');
+    }
+  }, [location.pathname]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -332,71 +440,6 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h2 className="text-lg font-semibold mb-4">API Key Settings</h2>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Anthropic API Key
-              </label>
-              <input
-                type="password"
-                value={tempApiKey}
-                onChange={(e) => setTempApiKey(e.target.value)}
-                placeholder="sk-ant-..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="mt-2 text-sm text-gray-500">
-                Get your API key from{' '}
-                <a
-                  href="https://console.anthropic.com/settings/keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  console.anthropic.com
-                </a>
-              </p>
-              {apiKey && (
-                <p className="mt-1 text-sm text-gray-500">
-                  Current: {getMaskedKey(apiKey)}
-                </p>
-              )}
-            </div>
-
-            <div className="flex justify-between">
-              <button
-                onClick={clearApiKey}
-                className="px-4 py-2 text-red-600 hover:text-red-700"
-              >
-                Clear
-              </button>
-              <div className="space-x-2">
-                <button
-                  onClick={() => {
-                    setShowSettings(false);
-                    setTempApiKey('');
-                  }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveApiKey}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-
       {/* Left Sidebar */}
       <div className="w-56 bg-gray-900 text-white flex flex-col">
         <div className="p-4 border-b border-gray-700">
@@ -408,60 +451,51 @@ export default function App() {
           )}
         </div>
         <nav className="flex-1 p-2">
-          <button
-            onClick={() => setActiveView('chat')}
+          <Link
+            to="/"
             className={`w-full flex items-center px-3 py-2 rounded-lg mb-1 ${
-              activeView === 'chat'
+              location.pathname === '/' || location.pathname === '/chat'
                 ? 'bg-gray-700 text-white'
                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
             }`}
           >
             <IoChatbubbleOutline className="w-5 h-5 mr-3" />
             Chat
-          </button>
-          <button
-            onClick={() => setActiveView('filesystem')}
+          </Link>
+          <Link
+            to="/filesystem"
             className={`w-full flex items-center px-3 py-2 rounded-lg ${
-              activeView === 'filesystem'
+              location.pathname === '/filesystem'
                 ? 'bg-gray-700 text-white'
                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
             }`}
           >
             <IoFolderOutline className="w-5 h-5 mr-3" />
             FileSystem
-          </button>
+          </Link>
         </nav>
         <div className="p-4 border-t border-gray-700">
-          <button
-            onClick={() => {
-              setTempApiKey(apiKey);
-              setShowSettings(true);
-            }}
-            className="w-full flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg"
+          <Link
+            to="/settings"
+            className={`w-full flex items-center px-3 py-2 rounded-lg ${
+              location.pathname === '/settings'
+                ? 'bg-gray-700 text-white'
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+            }`}
           >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
+            <IoSettingsOutline className="w-5 h-5 mr-3" />
             Settings
-          </button>
+          </Link>
         </div>
       </div>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col">
-        {activeView === 'chat' ? (
-          <>
+        <Routes>
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/filesystem" element={<FileSystemPage staticFiles={staticFiles} />} />
+          <Route path="*" element={
+            <>
             {/* Chat View */}
             {messages.length === 0 ? (
               /* Welcome state - centered */
@@ -772,24 +806,9 @@ export default function App() {
                 </form>
               </>
             )}
-          </>
-        ) : (
-          <>
-            {/* FileSystem View */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Files</h2>
-              {staticFiles.length === 0 ? (
-                <p className="text-gray-500">No static files configured</p>
-              ) : (
-                <div className="space-y-4">
-                  {staticFiles.map((result, index) => (
-                    <StaticFileCard key={index} result={result} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
+            </>
+          } />
+        </Routes>
 
         {/* Footer */}
         <div className="py-2 text-center">
