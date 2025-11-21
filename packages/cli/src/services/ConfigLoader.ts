@@ -12,7 +12,7 @@ export class ConfigLoader {
     const configPath = path.join(projectDir, 'claude-bazaar.config.ts');
 
     if (!await this.fileSystem.exists(configPath)) {
-      throw new Error(`Config not found: ${configPath}. Run 'bazaar init' first.`);
+      throw new Error(`Config not found: ${configPath}. Run 'claude-bazaar init' first.`);
     }
 
     const content = await this.fileSystem.readFile(configPath);

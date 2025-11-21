@@ -37,6 +37,8 @@ export class InitCommand {
     console.log('Created claude-bazaar.config.ts');
 
     await this.updateGitignore(projectDir);
+
+    console.log('\nYou can now run: claude-bazaar build');
   }
 
   private async promptForProjectInfo(defaultName: string): Promise<{ name: string; description: string }> {

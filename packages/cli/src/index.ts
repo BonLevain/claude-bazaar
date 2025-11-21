@@ -21,7 +21,7 @@ function createProgram(): Command {
   const serveCommand = new ServeCommand();
 
   program
-    .name('bazaar')
+    .name('claude-bazaar')
     .description('Deploy Claude Code projects as containers')
     .version('0.1.0');
 

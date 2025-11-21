@@ -247,7 +247,7 @@ npm link
 
 **Keep these files up to date when making changes:**
 
-- **Package README.md files** - Update when adding/changing API endpoints, environment variables, or usage patterns
+- **Package README.md files** - Update when adding/changing API endpoints, environment variables, usage patterns, or MOST IMPORTANTLY the packages/cli
 - **Package .gitignore files** - Add new build artifacts or generated files
 - **This CLAUDE.md** - Update when adding new patterns, architecture decisions, or project structure changes
 - **IMPLEMENTATION-PLAN-1.md** - Update task status as work progresses

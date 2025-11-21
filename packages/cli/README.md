@@ -12,27 +12,27 @@ npm link  # Makes 'bazaar' command available globally
 
 ## Commands
 
-### `bazaar init`
+### `claude-claude-bazaar init`
 
 Initialize a new Bazaar project in the current directory.
 
 ```bash
 cd my-claude-project
-bazaar init
+claude-bazaar init
 ```
 
 Creates:
 - `bazaar.config.ts` - Project configuration
 - Updates `.gitignore` with `.bazaar/`
 
-### `bazaar build`
+### `claude-claude-bazaar build`
 
 Build a Docker image for your project.
 
 ```bash
-bazaar build
-bazaar build -t my-plugin:latest
-bazaar build --push --registry docker.io/myuser
+claude-bazaar build
+claude-bazaar build -t my-plugin:latest
+claude-bazaar build --push --registry docker.io/myuser
 ```
 
 Options:
@@ -45,7 +45,7 @@ Creates:
 
 ## Configuration
 
-### `bazaar.config.ts`
+### `claude-bazaar.config.ts`
 
 ```typescript
 export default {
@@ -78,8 +78,8 @@ export default {
 ## Workflow
 
 1. Create your Claude Code project with commands, agents, or hooks
-2. Run `bazaar init` to create configuration
-3. Run `bazaar build` to create Docker image
+2. Run `claude-claude-bazaar init` to create configuration
+3. Run `claude-claude-bazaar build` to create Docker image
 4. Run the container:
 
 ```bash

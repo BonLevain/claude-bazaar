@@ -5,8 +5,15 @@ export class ImageTag {
   readonly version: string;
 
   constructor(name: string, version: string) {
-    this.name = name;
+    this.name = this.sanitizeName(name);
     this.version = version;
+  }
+
+  private sanitizeName(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9._-]/g, '');
   }
 
   static fromConfig(config: BazaarConfig): ImageTag {

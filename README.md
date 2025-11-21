@@ -41,7 +41,7 @@ npm install -g @bazaar/cli
 Navigate to your Claude Code project directory and run:
 
 ```bash
-bazaar init
+claude-bazaar init
 ```
 
 This creates a `claude-bazaar.config.ts` file with your project settings.
@@ -49,7 +49,7 @@ This creates a `claude-bazaar.config.ts` file with your project settings.
 ### 3. Build Your Container
 
 ```bash
-bazaar build
+claude-bazaar build
 ```
 
 This packages your project into a Docker container with everything it needs to run.
@@ -57,7 +57,7 @@ This packages your project into a Docker container with everything it needs to r
 ### 4. Run Your Project
 
 ```bash
-bazaar run
+claude-bazaar run
 ```
 
 Your project is now running on `http://localhost:3000`.
@@ -65,7 +65,7 @@ Your project is now running on `http://localhost:3000`.
 ### 5. Launch the Web Interface
 
 ```bash
-bazaar serve
+claude-bazaar serve
 ```
 
 Open `http://localhost:5173` in your browser. You now have a beautiful chat interface connected to your project!
@@ -136,38 +136,38 @@ export default {
 
 ## CLI Commands
 
-### `bazaar init`
+### `claude-claude-bazaar init`
 
 Interactive setup that creates your configuration file.
 
-### `bazaar build`
+### `claude-claude-bazaar build`
 
 Build a Docker image from your project.
 
 ```bash
-bazaar build                    # Use config defaults
-bazaar build -t myapp:v1        # Custom tag
-bazaar build --push --registry  # Push to registry
+claude-bazaar build                    # Use config defaults
+claude-bazaar build -t myapp:v1        # Custom tag
+claude-bazaar build --push --registry  # Push to registry
 ```
 
-### `bazaar run`
+### `claude-claude-bazaar run`
 
 Run your containerized project.
 
 ```bash
-bazaar run                      # Default port from config
-bazaar run -p 3001              # Custom port
-bazaar run -d                   # Run in background
+claude-bazaar run                      # Default port from config
+claude-bazaar run -p 3001              # Custom port
+claude-bazaar run -d                   # Run in background
 ```
 
-### `bazaar serve`
+### `claude-claude-bazaar serve`
 
 Start the web interface.
 
 ```bash
-bazaar serve                                    # Default: localhost:3000
-bazaar serve --projects http://localhost:3001   # Custom project URL
-bazaar serve -p 8080                            # Custom UI port
+claude-bazaar serve                                    # Default: localhost:3000
+claude-bazaar serve --projects http://localhost:3001   # Custom project URL
+claude-bazaar serve -p 8080                            # Custom UI port
 ```
 
 #### Multiple Projects
@@ -175,7 +175,7 @@ bazaar serve -p 8080                            # Custom UI port
 Connect to multiple running projects:
 
 ```bash
-bazaar serve --projects http://localhost:3000,http://localhost:3001
+claude-bazaar serve --projects http://localhost:3000,http://localhost:3001
 ```
 
 The web interface will show a dropdown to switch between them.
