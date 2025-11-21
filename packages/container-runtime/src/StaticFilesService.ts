@@ -62,6 +62,11 @@ export class StaticFilesService {
     const children: FileTreeNode[] = [];
 
     for (const entry of entries) {
+      // Skip hidden files and directories
+      if (entry.name.startsWith('.')) {
+        continue;
+      }
+
       const entryPath = path.join(dirPath, entry.name);
 
       if (entry.isDirectory()) {

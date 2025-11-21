@@ -37,6 +37,89 @@ interface StaticFilesResult {
   files: FileTreeNode;
 }
 
+// Recursive component to render file tree
+const FileTree = ({ node, depth = 0, basePath = '', urlPath = '' }: { node: FileTreeNode; depth?: number; basePath?: string; urlPath?: string }) => {
+  const [isOpen, setIsOpen] = useState(depth < 2);
+  const paddingLeft = depth * 16 + 8;
+  const currentPath = basePath ? `${basePath}/${node.name}` : node.name;
+
+  if (node.type === 'file') {
+    const downloadUrl = `${urlPath}?f=${encodeURIComponent(currentPath)}`;
+    return (
+      <div
+        className="flex items-center py-1 px-2 hover:bg-gray-100 text-sm"
+        style={{ paddingLeft: paddingLeft + 8 }}
+      >
+        <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <a
+          href={downloadUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 truncate cursor-pointer"
+        >
+          {node.name}
+        </a>
+        {node.size !== undefined && (
+          <span className="ml-auto text-xs text-gray-400 mr-2">
+            {node.size < 1024 ? `${node.size}B` : `${(node.size / 1024).toFixed(1)}KB`}
+          </span>
+        )}
+        <a
+          href={downloadUrl}
+          download={node.name}
+          className="p-1 text-gray-400 hover:text-gray-600"
+          title="Download"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center w-full py-1 px-2 hover:bg-gray-100 text-sm"
+        style={{ paddingLeft }}
+      >
+        <svg
+          className={`w-4 h-4 mr-1 text-gray-400 transition-transform ${isOpen ? 'rotate-90' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        <svg className="w-4 h-4 mr-2 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+        </svg>
+        <span className="text-gray-700">{node.name}</span>
+      </button>
+      {isOpen && node.children && (
+        <div>
+          {node.children.map((child, index) => (
+            <FileTree key={`${child.name}-${index}`} node={child} depth={depth + 1} basePath={currentPath} urlPath={urlPath} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Component for static file cards
+function StaticFileCard({ result }: { result: StaticFilesResult }) {
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 py-2">
+      <FileTree node={result.files} urlPath="/api/filesystem" />
+    </div>
+  );
+}
+
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -245,61 +328,6 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Recursive component to render file tree
-  const FileTree = ({ node, depth = 0 }: { node: FileTreeNode; depth?: number }) => {
-    const [isOpen, setIsOpen] = useState(depth < 2);
-    const paddingLeft = depth * 16;
-
-    if (node.type === 'file') {
-      return (
-        <div
-          className="flex items-center py-1 px-2 hover:bg-gray-100 text-sm"
-          style={{ paddingLeft: paddingLeft + 8 }}
-        >
-          <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <span className="text-gray-700 truncate">{node.name}</span>
-          {node.size !== undefined && (
-            <span className="ml-auto text-xs text-gray-400">
-              {node.size < 1024 ? `${node.size}B` : `${(node.size / 1024).toFixed(1)}KB`}
-            </span>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center w-full py-1 px-2 hover:bg-gray-100 text-sm"
-          style={{ paddingLeft }}
-        >
-          <svg
-            className={`w-4 h-4 mr-1 text-gray-400 transition-transform ${isOpen ? 'rotate-90' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <svg className="w-4 h-4 mr-2 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
-          </svg>
-          <span className="text-gray-700">{node.name}</span>
-        </button>
-        {isOpen && node.children && (
-          <div>
-            {node.children.map((child, index) => (
-              <FileTree key={`${child.name}-${index}`} node={child} depth={depth + 1} />
-            ))}
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -753,17 +781,9 @@ export default function App() {
               {staticFiles.length === 0 ? (
                 <p className="text-gray-500">No static files configured</p>
               ) : (
-                <div className="bg-white rounded-lg border border-gray-200">
+                <div className="space-y-4">
                   {staticFiles.map((result, index) => (
-                    <div key={index} className={index > 0 ? 'border-t border-gray-200' : ''}>
-                      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                        <p className="text-sm font-medium text-gray-700">{result.urlPath}</p>
-                        <p className="text-xs text-gray-500">{result.folder}</p>
-                      </div>
-                      <div className="py-2">
-                        <FileTree node={result.files} />
-                      </div>
-                    </div>
+                    <StaticFileCard key={index} result={result} />
                   ))}
                 </div>
               )}

@@ -1,4 +1,5 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
+import path from 'path';
 import { ExecutionService } from './ExecutionService.js';
 import { ExecuteRequest, RuntimeConfig } from './types.js';
 import { AuthManager } from './auth/AuthManager.js';
@@ -155,6 +156,41 @@ export class Server {
       } catch (error) {
         next(error);
       }
+    });
+
+    // Serve static files via /filesystem?f=path/to/file
+    this.app.get('/filesystem', (req: Request, res: Response) => {
+      const requestedPath = req.query.f as string;
+      const staticFiles = this.config.pluginConfig?.staticFiles;
+
+      if (!requestedPath) {
+        return res.status(400).json({ error: 'Missing file path parameter (f)' });
+      }
+
+      if (!staticFiles || staticFiles.length === 0) {
+        return res.status(404).json({ error: 'No static files configured' });
+      }
+
+      // Find matching static file config
+      for (const staticFile of staticFiles) {
+        const urlPathWithoutSlash = staticFile.urlPath.replace(/^\//, '');
+        if (requestedPath.startsWith(urlPathWithoutSlash)) {
+          const relativePath = requestedPath.slice(urlPathWithoutSlash.length).replace(/^\//, '');
+          const filePath = path.resolve(
+            this.config.pluginDir,
+            staticFile.folder.replace(/^\.\//, ''),
+            relativePath
+          );
+
+          return res.sendFile(filePath, (err) => {
+            if (err) {
+              res.status(404).json({ error: 'File not found' });
+            }
+          });
+        }
+      }
+
+      res.status(404).json({ error: 'File not found' });
     });
   }
 
