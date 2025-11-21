@@ -6,13 +6,21 @@
     "shipyard": "./dist/index.js"
   },
   "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "web-ui",
+    "container-runtime"
+  ],
   "scripts": {
     "build": "tsc",
+    "bundle": "bash scripts/bundle.sh",
+    "prepublishOnly": "npm run build && npm run bundle",
     "dev": "tsc --watch"
   },
   "dependencies": {
     "commander": "^12.0.0",
-    "execa": "^8.0.0"
+    "execa": "^8.0.0",
+    "sirv": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

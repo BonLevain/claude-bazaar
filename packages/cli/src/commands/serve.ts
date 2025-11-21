@@ -1,6 +1,8 @@
-import { execa } from 'execa';
+import http from 'http';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import sirv from 'sirv';
 import { ServeOptions } from '../types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -8,15 +10,17 @@ const __dirname = path.dirname(__filename);
 
 export class ServeCommand {
   async execute(options: ServeOptions = {}): Promise<void> {
-    const plugins = options.plugins || [];
+    const plugins = options.plugins || ['http://localhost:3000'];
     const marketplaces = options.marketplaces || [];
     const port = options.port || 5173;
 
-    if (plugins.length === 0 && marketplaces.length === 0) {
-      console.warn('Warning: No plugins or marketplaces specified. The UI will have no backends to connect to.');
-    }
+    // Path to bundled web-ui (in CLI package)
+    const webUiPath = path.resolve(__dirname, '../../web-ui');
 
-    const webInterfacePath = path.resolve(__dirname, '../../../web-interface');
+    if (!fs.existsSync(webUiPath)) {
+      console.error('Error: web-ui not found. Run "npm run bundle" first.');
+      process.exit(1);
+    }
 
     console.log(`Starting Claude Shipyard UI on port ${port}...`);
 
@@ -28,20 +32,48 @@ export class ServeCommand {
       console.log(`Marketplaces: ${marketplaces.join(', ')}`);
     }
 
-    const env: Record<string, string> = {
-      ...process.env as Record<string, string>,
-      VITE_SHIPYARD_PLUGINS: JSON.stringify(plugins),
-      VITE_SHIPYARD_MARKETPLACES: JSON.stringify(marketplaces),
-    };
+    // Read and modify index.html to inject runtime config
+    const indexPath = path.join(webUiPath, 'index.html');
+    let indexHtml = fs.readFileSync(indexPath, 'utf-8');
 
-    if (port !== 5173) {
-      env.VITE_PORT = String(port);
-    }
+    // Inject runtime config script before </head>
+    const configScript = `
+    <script>
+      window.__SHIPYARD_CONFIG__ = {
+        plugins: ${JSON.stringify(plugins)},
+        marketplaces: ${JSON.stringify(marketplaces)}
+      };
+    </script>`;
 
-    await execa('npm', ['run', 'dev'], {
-      cwd: webInterfacePath,
-      env,
-      stdio: 'inherit',
+    indexHtml = indexHtml.replace('</head>', `${configScript}\n</head>`);
+
+    // Create static file server
+    const serve = sirv(webUiPath, {
+      dev: true,
+      single: true, // SPA mode - serve index.html for all routes
     });
+
+    // Create HTTP server
+    const server = http.createServer((req, res) => {
+      // Serve modified index.html for root and SPA routes
+      if (req.url === '/' || req.url === '/index.html' || !req.url?.includes('.')) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(indexHtml);
+        return;
+      }
+
+      // Serve static files
+      serve(req, res, () => {
+        res.writeHead(404);
+        res.end('Not found');
+      });
+    });
+
+    server.listen(port, () => {
+      console.log(`\nUI available at: http://localhost:${port}`);
+    });
+
+    // Keep process running
+    await new Promise(() => {});
   }
 }

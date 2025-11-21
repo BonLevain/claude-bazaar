@@ -1,9 +1,13 @@
 import path from 'path';
 import { promises as fs } from 'fs';
 import { execa } from 'execa';
+import { fileURLToPath } from 'url';
 import { ShipyardConfig, BuildOptions, FileSystemService } from '../types.js';
 import { ConfigLoader } from '../services/ConfigLoader.js';
 import { ImageTag } from '../services/ImageTag.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class BuildCommand {
   private readonly fileSystem: FileSystemService;
@@ -116,8 +120,13 @@ CMD ["node", "dist/index.js"]
     const runtimeSrcPath = await this.findRuntimePackage(projectDir);
     const runtimeDestPath = path.join(shipyardDir, 'runtime');
 
+    // Handle both absolute paths (bundled) and relative paths (node_modules)
+    const fullPath = path.isAbsolute(runtimeSrcPath)
+      ? runtimeSrcPath
+      : path.join(projectDir, runtimeSrcPath);
+
     // Resolve symlinks and copy actual files
-    const resolvedSrc = await fs.realpath(path.join(projectDir, runtimeSrcPath));
+    const resolvedSrc = await fs.realpath(fullPath);
 
     await fs.rm(runtimeDestPath, { recursive: true, force: true });
     await fs.cp(resolvedSrc, runtimeDestPath, { recursive: true });
@@ -127,6 +136,13 @@ CMD ["node", "dist/index.js"]
 
   private async findRuntimePackage(projectDir: string): Promise<string> {
     // Check possible locations for the container-runtime package
+    // 1. First check in CLI's bundled container-runtime
+    const bundledPath = path.resolve(__dirname, '../../container-runtime');
+    if (await this.fileSystem.exists(bundledPath)) {
+      return bundledPath;
+    }
+
+    // 2. Check in user's project node_modules
     const possiblePaths = [
       'node_modules/@shipyard/container-runtime',
       'node_modules/container-runtime',
@@ -140,8 +156,7 @@ CMD ["node", "dist/index.js"]
     }
 
     throw new Error(
-      'Could not find @shipyard/container-runtime. Install it with:\n' +
-      '  npm install @shipyard/container-runtime'
+      'Could not find container-runtime. Run "npm run bundle" in the CLI package first.'
     );
   }
 

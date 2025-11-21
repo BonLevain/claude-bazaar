@@ -11,16 +11,28 @@ export interface PluginSource {
   getPlugins(): Promise<Plugin[]>;
 }
 
+// Declare global config type
+declare global {
+  interface Window {
+    __SHIPYARD_CONFIG__?: {
+      plugins?: string[];
+      marketplaces?: string[];
+    };
+  }
+}
+
 export class CLIPluginSource implements PluginSource {
   async getPlugins(): Promise<Plugin[]> {
-    const pluginsEnv = import.meta.env.VITE_SHIPYARD_PLUGINS;
+    // Try runtime config first (from serve command), then fall back to Vite env
+    const config = window.__SHIPYARD_CONFIG__;
+    const pluginsEnv = config?.plugins || import.meta.env.VITE_SHIPYARD_PLUGINS;
 
     if (!pluginsEnv) {
       return [];
     }
 
     try {
-      const urls: string[] = JSON.parse(pluginsEnv);
+      const urls: string[] = Array.isArray(pluginsEnv) ? pluginsEnv : JSON.parse(pluginsEnv);
       return urls.map((url, index) => ({
         id: `cli-${index}`,
         name: `Plugin ${index + 1}`,
@@ -29,7 +41,7 @@ export class CLIPluginSource implements PluginSource {
         status: 'unknown' as const,
       }));
     } catch {
-      console.error('Failed to parse VITE_SHIPYARD_PLUGINS');
+      console.error('Failed to parse plugins config');
       return [];
     }
   }
@@ -39,7 +51,9 @@ export class MarketplacePluginSource implements PluginSource {
   private marketplaceUrls: string[];
 
   constructor() {
-    const marketplacesEnv = import.meta.env.VITE_SHIPYARD_MARKETPLACES;
+    // Try runtime config first, then fall back to Vite env
+    const config = window.__SHIPYARD_CONFIG__;
+    const marketplacesEnv = config?.marketplaces || import.meta.env.VITE_SHIPYARD_MARKETPLACES;
 
     if (!marketplacesEnv) {
       this.marketplaceUrls = [];
@@ -47,9 +61,9 @@ export class MarketplacePluginSource implements PluginSource {
     }
 
     try {
-      this.marketplaceUrls = JSON.parse(marketplacesEnv);
+      this.marketplaceUrls = Array.isArray(marketplacesEnv) ? marketplacesEnv : JSON.parse(marketplacesEnv);
     } catch {
-      console.error('Failed to parse VITE_SHIPYARD_MARKETPLACES');
+      console.error('Failed to parse marketplaces config');
       this.marketplaceUrls = [];
     }
   }

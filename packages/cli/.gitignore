@@ -2,3 +2,7 @@ node_modules/
 dist/
 *.tgz
 .DS_Store
+
+# Bundled packages (generated at build time)
+web-ui/
+container-runtime/
