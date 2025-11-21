@@ -1,22 +1,22 @@
 import { useState } from 'react';
-import { usePlugins } from '../contexts/PluginContext';
+import { useProjects } from '../contexts/ProjectContext';
 
-export function PluginSelector() {
-  const { plugins, selectedPlugin, setSelectedPlugin, isLoading } = usePlugins();
+export function ProjectSelector() {
+  const { projects, selectedProject, setSelectedProject, isLoading } = useProjects();
   const [isOpen, setIsOpen] = useState(false);
 
   if (isLoading) {
     return (
       <div className="flex items-center px-3 py-1.5 text-sm text-gray-400">
-        Loading plugins...
+        Loading projects...
       </div>
     );
   }
 
-  if (plugins.length === 0) {
+  if (projects.length === 0) {
     return (
       <div className="flex items-center px-3 py-1.5 text-sm text-gray-500">
-        No plugins available
+        No projects available
       </div>
     );
   }
@@ -38,9 +38,9 @@ export function PluginSelector() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-300 transition-colors"
       >
-        <span className={`w-2 h-2 rounded-full ${getStatusColor(selectedPlugin?.status)}`} />
+        <span className={`w-2 h-2 rounded-full ${getStatusColor(selectedProject?.status)}`} />
         <span className="text-gray-700 truncate max-w-[150px]">
-          {selectedPlugin?.name || 'Select plugin'}
+          {selectedProject?.name || 'Select project'}
         </span>
         <svg
           className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -62,23 +62,23 @@ export function PluginSelector() {
 
           {/* Dropdown */}
           <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-20 py-1">
-            {plugins.map((plugin) => (
+            {projects.map((project) => (
               <button
-                key={plugin.id}
+                key={project.id}
                 onClick={() => {
-                  setSelectedPlugin(plugin);
+                  setSelectedProject(project);
                   setIsOpen(false);
                 }}
                 className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
-                  selectedPlugin?.id === plugin.id ? 'bg-blue-50' : ''
+                  selectedProject?.id === project.id ? 'bg-blue-50' : ''
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusColor(plugin.status)}`} />
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusColor(project.status)}`} />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 truncate">{plugin.name}</div>
-                    {plugin.description && (
-                      <div className="text-xs text-gray-500 truncate">{plugin.description}</div>
+                    <div className="font-medium text-gray-900 truncate">{project.name}</div>
+                    {project.description && (
+                      <div className="text-xs text-gray-500 truncate">{project.description}</div>
                     )}
                   </div>
                 </div>

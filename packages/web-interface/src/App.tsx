@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { IoChatbubbleOutline, IoFolderOutline, IoSettingsOutline } from 'react-icons/io5';
-import { usePlugins } from './contexts/PluginContext';
-import { PluginSelector } from './components/PluginSelector';
+import { useProjects } from './contexts/ProjectContext';
+import { ProjectSelector } from './components/ProjectSelector';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -123,7 +123,7 @@ function SettingsPage() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('shipyard_api_key') || '');
   const [showModal, setShowModal] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
-  const { plugins } = usePlugins();
+  const { projects } = useProjects();
 
   const getMaskedKey = (key: string) => {
     if (!key) return 'Not configured';
@@ -174,25 +174,25 @@ function SettingsPage() {
             </button>
           </div>
 
-          {/* Plugins Section */}
+          {/* Projects Section */}
           <hr className="border-gray-300 my-6" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Plugins</h3>
-          {plugins.length === 0 ? (
-            <p className="text-gray-500 text-sm">No plugins configured</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Projects</h3>
+          {projects.length === 0 ? (
+            <p className="text-gray-500 text-sm">No projects configured</p>
           ) : (
             <div className="space-y-3">
-              {plugins.map((plugin) => (
-                <div key={plugin.id} className="flex items-start justify-between gap-3 py-2">
+              {projects.map((project) => (
+                <div key={project.id} className="flex items-start justify-between gap-3 py-2">
                   <div className="flex items-start gap-3">
-                    <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${getStatusColor(plugin.status)}`} />
+                    <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${getStatusColor(project.status)}`} />
                     <div className="min-w-0">
-                      <div className="font-medium text-gray-900">{plugin.name}</div>
-                      {plugin.description && (
-                        <div className="text-sm text-gray-600">{plugin.description}</div>
+                      <div className="font-medium text-gray-900">{project.name}</div>
+                      {project.description && (
+                        <div className="text-sm text-gray-600">{project.description}</div>
                       )}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-400 font-mono text-right">{plugin.url}</div>
+                  <div className="text-xs text-gray-400 font-mono text-right">{project.url}</div>
                 </div>
               ))}
             </div>
@@ -262,7 +262,7 @@ function FileSystemPage({ staticFiles }: { staticFiles: StaticFilesResult[] }) {
     <div className="flex-1 flex flex-col">
       <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-white">
         <h2 className="text-xl font-semibold text-gray-900">Files</h2>
-        <PluginSelector />
+        <ProjectSelector />
       </div>
       <div className="flex-1 overflow-y-auto p-6">
         {staticFiles.length === 0 ? (
@@ -292,7 +292,7 @@ export default function App() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const location = useLocation();
 
-  const { apiCall, selectedPlugin } = usePlugins();
+  const { apiCall, selectedProject } = useProjects();
 
   // Generate session ID for conversation context
   const [sessionId] = useState(() => crypto.randomUUID());
@@ -305,9 +305,9 @@ export default function App() {
     scrollToBottom();
   }, [messages]);
 
-  // Fetch available commands when plugin changes
+  // Fetch available commands when project changes
   useEffect(() => {
-    if (!selectedPlugin) return;
+    if (!selectedProject) return;
 
     apiCall('/commands')
       .then((res) => res.json())
@@ -317,11 +317,11 @@ export default function App() {
         }
       })
       .catch((err) => console.error('Failed to fetch commands:', err));
-  }, [selectedPlugin, apiCall]);
+  }, [selectedProject, apiCall]);
 
-  // Fetch static files when plugin changes
+  // Fetch static files when project changes
   useEffect(() => {
-    if (!selectedPlugin) return;
+    if (!selectedProject) return;
 
     apiCall('/static/files')
       .then((res) => res.json())
@@ -331,7 +331,7 @@ export default function App() {
         }
       })
       .catch((err) => console.error('Failed to fetch static files:', err));
-  }, [selectedPlugin, apiCall]);
+  }, [selectedProject, apiCall]);
 
   // Filter commands based on input
   const filteredCommands = input.startsWith('/')
@@ -385,12 +385,12 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      if (!selectedPlugin) {
+      if (!selectedProject) {
         setMessages((prev) => [
           ...prev,
           {
             role: 'assistant',
-            content: '**No Plugin Selected**\n\nPlease select a plugin from the dropdown above to start chatting.',
+            content: '**No Project Selected**\n\nPlease select a project from the dropdown above to start chatting.',
           },
         ]);
         setIsLoading(false);
@@ -612,7 +612,7 @@ export default function App() {
 
                       {/* Bottom toolbar */}
                       <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100">
-                        <PluginSelector />
+                        <ProjectSelector />
                         <div className="flex items-center space-x-2">
                           <label className="cursor-pointer">
                             <input
@@ -778,7 +778,7 @@ export default function App() {
 
                       {/* Bottom toolbar */}
                       <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100">
-                        <PluginSelector />
+                        <ProjectSelector />
                         <div className="flex items-center space-x-2">
                           <label className="cursor-pointer">
                             <input

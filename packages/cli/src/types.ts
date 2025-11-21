@@ -40,8 +40,7 @@ export interface RunOptions {
 }
 
 export interface ServeOptions {
-  plugins?: string[];
-  marketplaces?: string[];
+  projects?: string[];
   port?: number;
 }
 

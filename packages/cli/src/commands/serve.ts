@@ -10,8 +10,7 @@ const __dirname = path.dirname(__filename);
 
 export class ServeCommand {
   async execute(options: ServeOptions = {}): Promise<void> {
-    const plugins = options.plugins || ['http://localhost:3000'];
-    const marketplaces = options.marketplaces || [];
+    const projects = options.projects || ['http://localhost:3000'];
     const port = options.port || 5173;
 
     // Path to bundled web-ui (in CLI package)
@@ -23,14 +22,7 @@ export class ServeCommand {
     }
 
     console.log(`Starting Claude Shipyard UI on port ${port}...`);
-
-    if (plugins.length > 0) {
-      console.log(`Plugins: ${plugins.join(', ')}`);
-    }
-
-    if (marketplaces.length > 0) {
-      console.log(`Marketplaces: ${marketplaces.join(', ')}`);
-    }
+    console.log(`Projects: ${projects.join(', ')}`);
 
     // Read and modify index.html to inject runtime config
     const indexPath = path.join(webUiPath, 'index.html');
@@ -40,8 +32,7 @@ export class ServeCommand {
     const configScript = `
     <script>
       window.__SHIPYARD_CONFIG__ = {
-        plugins: ${JSON.stringify(plugins)},
-        marketplaces: ${JSON.stringify(marketplaces)}
+        projects: ${JSON.stringify(projects)}
       };
     </script>`;
 

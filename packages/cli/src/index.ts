@@ -70,8 +70,7 @@ function createProgram(): Command {
   program
     .command('serve')
     .description('Start the web interface')
-    .option('--plugins <urls>', 'Comma-separated plugin container URLs', (val) => val.split(','))
-    .option('--marketplaces <urls>', 'Comma-separated marketplace API URLs', (val) => val.split(','))
+    .option('--projects <urls>', 'Comma-separated project container URLs (default: http://localhost:3000)', (val) => val.split(','))
     .option('-p, --port <port>', 'Port for web interface', parseInt)
     .action(async (options) => {
       try {
