@@ -1,17 +1,26 @@
+<div align="center">
+
 # Claude Shipyard
 
-**Turn your Claude Code projects into shareable, monetizable services—in minutes, not months.**
+### 🚀 Share and Monetize your Claude Code Projects 💰
 
-You've built something amazing with Claude Code. Maybe it's a research assistant, a code reviewer, a data analyzer, or something entirely unique. But sharing it? That's where it gets complicated. Servers, Docker, APIs, authentication—suddenly you need a whole DevOps team.
+</div>
 
-**Not anymore.**
+---
 
-Claude Shipyard packages your Claude Code projects into ready-to-deploy containers with a beautiful web interface. No DevOps experience required. Just build, run, and share.
+You built something cool with Claude Code. Now everyone's asking: "Can I use that?"
+
+**That's why we built Shipyard.**
+
+One command to package, ship, and monitize your project with a slick web interface. Done. Your coworker, your subscribers, your investor, your mom—anyone can use it. No terminal required on their end.
+
+And yeah, you can charge for it too. But we'll get to that.
 
 ---
 
 ## Who Is This For?
 
+- **Creators** like YouTubers and influencers building useful projects their subscribers want to pay to use
 - **Founders** who built a prototype in Claude Code and want to share it with investors or early users
 - **Enterprise teams** who created internal tools and need to distribute them to colleagues
 - **Developers** who want to monetize their Claude Code creations without building infrastructure
@@ -317,7 +326,11 @@ npm run dev
 
 ## License
 
-MIT
+Business Source License 1.1 (BSL)
+
+You can use Claude Shipyard to build and deploy your own projects—that's the whole point! The license only restricts building a competing hosted marketplace or adding your own monetization features to offer a competing commercial service.
+
+See [LICENSE.md](LICENSE.md) for details.
 
 ---
 
