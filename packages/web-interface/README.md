@@ -1,6 +1,6 @@
-# @shipyard/web-interface
+# @bazaar/web-interface
 
-Browser-based chat interface for Claude Shipyard projects.
+Browser-based chat interface for Claude Bazaar projects.
 
 ## Features
 
@@ -26,14 +26,14 @@ npm run build
 
 ## Architecture
 
-The web interface is bundled into the CLI package and served via the `shipyard serve` command. It connects directly to project containers using the URLs provided via `--projects` flag.
+The web interface is bundled into the CLI package and served via the `bazaar serve` command. It connects directly to project containers using the URLs provided via `--projects` flag.
 
 ### Runtime Configuration
 
 When served via CLI, configuration is injected at runtime:
 
 ```javascript
-window.__SHIPYARD_CONFIG__ = {
+window.__BAZAAR_CONFIG__ = {
   projects: ['http://localhost:3000']
 };
 ```

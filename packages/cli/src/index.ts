@@ -21,13 +21,13 @@ function createProgram(): Command {
   const serveCommand = new ServeCommand();
 
   program
-    .name('shipyard')
+    .name('bazaar')
     .description('Deploy Claude Code projects as containers')
     .version('0.1.0');
 
   program
     .command('init')
-    .description('Initialize a new Shipyard project')
+    .description('Initialize a new Bazaar project')
     .action(async () => {
       try {
         await initCommand.execute();

@@ -1,4 +1,4 @@
-# @shipyard/container-runtime
+# @bazaar/container-runtime
 
 HTTP server runtime for headless Claude Code containers.
 
@@ -22,7 +22,7 @@ PORT=3000 node dist/index.js
 - `PORT` - Server port (default: 3000)
 - `TIMEOUT` - Execution timeout in ms (default: 120000)
 - `PLUGIN_DIR` - Path to plugin files (default: /app/plugin)
-- `WORKSPACE_DIR` - Temp workspace directory (default: /tmp/shipyard)
+- `WORKSPACE_DIR` - Temp workspace directory (default: /tmp/bazaar)
 - `ANTHROPIC_API_KEY` - Required for Claude Code
 
 ## API
@@ -57,6 +57,6 @@ curl -N http://localhost:3000/execute/stream \
 ## Docker
 
 ```bash
-docker build -t shipyard-runtime .
-docker run -p 3000:3000 -e ANTHROPIC_API_KEY=xxx shipyard-runtime
+docker build -t bazaar-runtime .
+docker run -p 3000:3000 -e ANTHROPIC_API_KEY=xxx bazaar-runtime
 ```

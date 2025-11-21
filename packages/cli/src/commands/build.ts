@@ -2,7 +2,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { execa } from 'execa';
 import { fileURLToPath } from 'url';
-import { ShipyardConfig, BuildOptions, FileSystemService } from '../types.js';
+import { BazaarConfig, BuildOptions, FileSystemService } from '../types.js';
 import { ConfigLoader } from '../services/ConfigLoader.js';
 import { ImageTag } from '../services/ImageTag.js';
 
@@ -44,16 +44,16 @@ export class BuildCommand {
     return tag;
   }
 
-  private async generateDockerfile(projectDir: string, config: ShipyardConfig): Promise<string> {
+  private async generateDockerfile(projectDir: string, config: BazaarConfig): Promise<string> {
     const port = config.runtime?.port || 3000;
     const timeout = config.runtime?.timeout || 120000;
     const image = config.runtime?.image || 'nikolaik/python-nodejs:python3.11-nodejs20';
 
-    const shipyardDir = path.join(projectDir, '.claude-shipyard');
-    await this.fileSystem.mkdir(shipyardDir);
+    const bazaarDir = path.join(projectDir, '.claude-bazaar');
+    await this.fileSystem.mkdir(bazaarDir);
 
-    // Copy runtime files into .claude-shipyard to avoid symlink issues
-    await this.copyRuntimeFiles(projectDir, shipyardDir);
+    // Copy runtime files into .claude-bazaar to avoid symlink issues
+    await this.copyRuntimeFiles(projectDir, bazaarDir);
 
     // Build dependency installation commands
     let dependencyCommands = '';
@@ -87,9 +87,9 @@ ${dependencyCommands}
 WORKDIR /app/runtime
 
 # Copy runtime package and install dependencies
-COPY .claude-shipyard/runtime/package.json ./
+COPY .claude-bazaar/runtime/package.json ./
 RUN npm install --production
-COPY .claude-shipyard/runtime/dist ./dist
+COPY .claude-bazaar/runtime/dist ./dist
 
 # Copy plugin files
 WORKDIR /app/plugin
@@ -109,16 +109,16 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \\
 CMD ["node", "dist/index.js"]
 `;
 
-    const dockerfilePath = path.join(shipyardDir, 'Dockerfile');
+    const dockerfilePath = path.join(bazaarDir, 'Dockerfile');
     await this.fileSystem.writeFile(dockerfilePath, dockerfile);
 
-    console.log('Generated .claude-shipyard/Dockerfile');
+    console.log('Generated .claude-bazaar/Dockerfile');
     return dockerfilePath;
   }
 
-  private async copyRuntimeFiles(projectDir: string, shipyardDir: string): Promise<void> {
+  private async copyRuntimeFiles(projectDir: string, bazaarDir: string): Promise<void> {
     const runtimeSrcPath = await this.findRuntimePackage(projectDir);
-    const runtimeDestPath = path.join(shipyardDir, 'runtime');
+    const runtimeDestPath = path.join(bazaarDir, 'runtime');
 
     // Handle both absolute paths (bundled) and relative paths (node_modules)
     const fullPath = path.isAbsolute(runtimeSrcPath)
@@ -131,7 +131,7 @@ CMD ["node", "dist/index.js"]
     await fs.rm(runtimeDestPath, { recursive: true, force: true });
     await fs.cp(resolvedSrc, runtimeDestPath, { recursive: true });
 
-    console.log('Copied runtime files to .claude-shipyard/runtime');
+    console.log('Copied runtime files to .claude-bazaar/runtime');
   }
 
   private async findRuntimePackage(projectDir: string): Promise<string> {
@@ -144,7 +144,7 @@ CMD ["node", "dist/index.js"]
 
     // 2. Check in user's project node_modules
     const possiblePaths = [
-      'node_modules/@shipyard/container-runtime',
+      'node_modules/@bazaar/container-runtime',
       'node_modules/container-runtime',
     ];
 

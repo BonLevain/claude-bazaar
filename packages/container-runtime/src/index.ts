@@ -11,7 +11,7 @@ function loadConfig(): RuntimeConfig {
     port: parseInt(process.env.PORT || '3000', 10),
     timeout: parseInt(process.env.TIMEOUT || '120000', 10),
     pluginDir: process.env.PLUGIN_DIR || '/app/plugin',
-    workspaceBaseDir: process.env.WORKSPACE_DIR || '/tmp/shipyard',
+    workspaceBaseDir: process.env.WORKSPACE_DIR || '/tmp/bazaar',
   };
 }
 

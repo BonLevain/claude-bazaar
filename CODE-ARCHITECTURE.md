@@ -1,4 +1,4 @@
-# Claude Shipyard - Code Architecture
+# Claude Bazaar - Code Architecture
 
 This document defines the separation between open-source and closed-source components, shared code patterns, and implementation details for execution.
 
@@ -7,7 +7,7 @@ This document defines the separation between open-source and closed-source compo
 ### Two Repositories
 
 ```
-claude-shipyard/                    # Open Source (MIT)
+claude-bazaar/                    # Open Source (MIT)
 ├── packages/
 │   ├── cli/                        # Main CLI tool
 │   ├── core/                       # Shared core logic
@@ -18,14 +18,14 @@ claude-shipyard/                    # Open Source (MIT)
 │   └── plugin-server/              # Starter server template
 └── docs/
 
-shipyard-platform/                  # Closed Source (Proprietary)
+bazaar-platform/                  # Closed Source (Proprietary)
 ├── packages/
-│   ├── api-gateway/                # Shipyard auth/billing middleware
-│   ├── marketplace-service/        # Shipyard registry management
+│   ├── api-gateway/                # Bazaar auth/billing middleware
+│   ├── marketplace-service/        # Bazaar registry management
 │   ├── billing-service/            # Stripe Connect integration
-│   └── orchestration/              # Shipyard's ECS/infra orchestration
+│   └── orchestration/              # Bazaar's ECS/infra orchestration
 ├── infrastructure/
-│   └── terraform/                  # Shipyard's AWS infrastructure
+│   └── terraform/                  # Bazaar's AWS infrastructure
 └── dashboard/                      # Creator/admin dashboard
 ```
 
@@ -33,7 +33,7 @@ shipyard-platform/                  # Closed Source (Proprietary)
 
 ### 1. CLI (`packages/cli`)
 
-The main `claude-shipyard` command-line tool.
+The main `claude-bazaar` command-line tool.
 
 ```typescript
 // packages/cli/src/index.ts
@@ -44,7 +44,7 @@ import { buildCommand } from './commands/build';
 import { publishCommand } from './commands/publish';
 
 const program = new Command()
-  .name('claude-shipyard')
+  .name('claude-bazaar')
   .description('Deploy Claude Code plugins as services')
   .version('1.0.0');
 
@@ -84,7 +84,7 @@ packages/core/
 │   │   ├── MCPProxyServer.ts       # Container-side MCP server
 │   │   └── MCPToolRegistry.ts      # Tool discovery/namespacing
 │   ├── config/
-│   │   ├── ShipyardConfig.ts       # shipyard.config.ts parser
+│   │   ├── BazaarConfig.ts       # bazaar.config.ts parser
 │   │   └── ConfigSchema.ts         # Zod schemas
 │   └── types/
 │       └── index.ts
@@ -215,7 +215,7 @@ This allows self-hosted users to:
 
 ```typescript
 // packages/thin-client-generator/src/ThinClientGenerator.ts
-import { PluginManifest, PluginDiscovery } from '@claude-shipyard/core';
+import { PluginManifest, PluginDiscovery } from '@claude-bazaar/core';
 
 export class ThinClientGenerator {
   constructor(
@@ -246,7 +246,7 @@ export class ThinClientGenerator {
       path: `commands/${command.name}.md`,
       content: `---
 description: ${command.description}
-mcp: shipyard-proxy
+mcp: bazaar-proxy
 tool: execute_command
 args:
   command: ${command.name}
@@ -261,7 +261,7 @@ Execute the ${command.name} command remotely.
     return {
       path: `agents/${agent.name}.md`,
       content: `---
-mcp: shipyard-proxy
+mcp: bazaar-proxy
 tool: invoke_agent
 args:
   agent: ${agent.name}
@@ -280,7 +280,7 @@ ${agent.description || `Invoke the ${agent.name} agent.`}
         matcher: h.matcher,
         hooks: [{
           type: 'mcp',
-          server: 'shipyard-proxy',
+          server: 'bazaar-proxy',
           tool: 'execute_hook',
           args: {
             hook: event,
@@ -297,7 +297,7 @@ ${agent.description || `Invoke the ${agent.name} agent.`}
   private generateMCPConfig(mcpServers: MCPServers): MCPConfig {
     return {
       mcpServers: {
-        'shipyard-proxy': {
+        'bazaar-proxy': {
           type: 'http',
           url: this.options.endpoint,
           headers: {
@@ -310,7 +310,7 @@ ${agent.description || `Invoke the ${agent.name} agent.`}
 }
 ```
 
-## Closed Source Components (shipyard-platform)
+## Closed Source Components (bazaar-platform)
 
 ### 1. API Gateway (`packages/api-gateway`)
 
@@ -342,7 +342,7 @@ export async function subscriptionMiddleware(req: Request, res: Response, next: 
   if (!subscription?.active) {
     return res.status(403).json({
       error: 'Subscription required',
-      subscribeUrl: `https://shipyard.run/subscribe/${pluginId}`,
+      subscribeUrl: `https://bazaar.run/subscribe/${pluginId}`,
     });
   }
 
@@ -389,8 +389,8 @@ export class MarketplaceService {
     // 3. Generate thin client
     const generator = new ThinClientGenerator(source.path, {
       pluginName: plugin.name,
-      endpoint: `https://api.shipyard.run/plugins/${plugin.name}/mcp`,
-      apiKeyEnvVar: 'SHIPYARD_API_KEY',
+      endpoint: `https://api.bazaar.run/plugins/${plugin.name}/mcp`,
+      apiKeyEnvVar: 'BAZAAR_API_KEY',
     });
     const thinClient = await generator.generate();
 
@@ -410,19 +410,19 @@ export class MarketplaceService {
       githubRepo,
       imageUri,
       serviceArn,
-      internalEndpoint: `http://${plugin.name}.shipyard.internal:3000`,
+      internalEndpoint: `http://${plugin.name}.bazaar.internal:3000`,
     });
 
     return {
       pluginId: plugin.name,
-      marketplaceUrl: `https://github.com/shipyard-marketplace/registry`,
-      dashboardUrl: `https://shipyard.run/dashboard/${plugin.name}`,
+      marketplaceUrl: `https://github.com/bazaar-marketplace/registry`,
+      dashboardUrl: `https://bazaar.run/dashboard/${plugin.name}`,
     };
   }
 
   private async updateMarketplaceRepo(plugin: PluginManifest, thinClient: ThinClient) {
     // Clone marketplace repo
-    const repo = await this.github.cloneRepo('shipyard-marketplace/registry');
+    const repo = await this.github.cloneRepo('bazaar-marketplace/registry');
 
     // Write thin client files
     const pluginDir = `${repo.path}/plugins/${plugin.name}`;
@@ -492,7 +492,7 @@ export class BillingService {
     const subscription = await this.stripe.subscriptions.create({
       customer: userId,
       items: [{ price: tier.stripePriceId }],
-      application_fee_percent: 20, // Shipyard takes 20%
+      application_fee_percent: 20, // Bazaar takes 20%
       transfer_data: {
         destination: plugin.creator.stripeAccountId,
       },
@@ -516,7 +516,7 @@ export class BillingService {
 
 ### 4. Orchestration Service (`packages/orchestration`)
 
-**Shipyard-specific** ECS orchestration for marketplace plugin containers. This is NOT needed by self-hosted users (they use the open-source `packages/deployment` instead).
+**Bazaar-specific** ECS orchestration for marketplace plugin containers. This is NOT needed by self-hosted users (they use the open-source `packages/deployment` instead).
 
 ```typescript
 // packages/orchestration/src/OrchestrationService.ts
@@ -530,7 +530,7 @@ export class OrchestrationService {
   async deployPlugin(pluginId: string, imageUri: string): Promise<string> {
     // Create task definition
     const taskDef = await this.ecs.registerTaskDefinition({
-      family: `shipyard-plugin-${pluginId}`,
+      family: `bazaar-plugin-${pluginId}`,
       networkMode: 'awsvpc',
       requiresCompatibilities: ['FARGATE'],
       cpu: '512',
@@ -548,7 +548,7 @@ export class OrchestrationService {
         logConfiguration: {
           logDriver: 'awslogs',
           options: {
-            'awslogs-group': `/shipyard/plugins/${pluginId}`,
+            'awslogs-group': `/bazaar/plugins/${pluginId}`,
             'awslogs-region': 'us-east-1',
             'awslogs-stream-prefix': 'ecs',
           },
@@ -558,7 +558,7 @@ export class OrchestrationService {
 
     // Create service
     const service = await this.ecs.createService({
-      cluster: 'shipyard-plugins',
+      cluster: 'bazaar-plugins',
       serviceName: pluginId,
       taskDefinition: taskDef.taskDefinitionArn,
       desiredCount: 1,
@@ -670,22 +670,22 @@ export class MarketplaceDeploymentStrategy implements DeploymentStrategy {
   ) {}
 
   async build(plugin: Plugin): Promise<BuildArtifact> {
-    // Build and push to Shipyard ECR
+    // Build and push to Bazaar ECR
     const imageUri = await this.ecr.buildAndPush(plugin);
     return { imageUri };
   }
 
   async deploy(artifact: BuildArtifact): Promise<DeploymentResult> {
-    // Deploy to Shipyard ECS
+    // Deploy to Bazaar ECS
     const serviceArn = await this.ecs.deployService(artifact.imageUri);
-    return { serviceArn, endpoint: `http://${plugin.name}.shipyard.internal:3000` };
+    return { serviceArn, endpoint: `http://${plugin.name}.bazaar.internal:3000` };
   }
 
   async generateThinClient(plugin: Plugin): Promise<ThinClient> {
     const generator = new ThinClientGenerator(plugin.path, {
       pluginName: plugin.name,
-      endpoint: `https://api.shipyard.run/plugins/${plugin.name}/mcp`,
-      apiKeyEnvVar: 'SHIPYARD_API_KEY',
+      endpoint: `https://api.bazaar.run/plugins/${plugin.name}/mcp`,
+      apiKeyEnvVar: 'BAZAAR_API_KEY',
     });
     return generator.generate();
   }
@@ -722,7 +722,7 @@ export const buildCommand = new Command('build')
     factory.register(new SelfHostedDeploymentStrategy());
 
     // Marketplace strategy is only available when API is configured
-    if (config.shipyardApiKey) {
+    if (config.bazaarApiKey) {
       factory.register(new MarketplaceDeploymentStrategy(config));
     }
 
@@ -877,8 +877,8 @@ export class MCPProxyServer {
 
 ```typescript
 // packages/core/src/config/ConfigBuilder.ts
-export class ShipyardConfigBuilder {
-  private config: Partial<ShipyardConfig> = {};
+export class BazaarConfigBuilder {
+  private config: Partial<BazaarConfig> = {};
 
   name(name: string): this {
     this.config.name = name;
@@ -910,18 +910,18 @@ export class ShipyardConfigBuilder {
     return this;
   }
 
-  build(): ShipyardConfig {
+  build(): BazaarConfig {
     // Validate required fields
     if (!this.config.name) {
       throw new Error('Plugin name is required');
     }
 
-    return this.config as ShipyardConfig;
+    return this.config as BazaarConfig;
   }
 }
 
 // Usage
-const config = new ShipyardConfigBuilder()
+const config = new BazaarConfigBuilder()
   .name('security-analyzer')
   .description('AI security analysis')
   .server({
@@ -945,8 +945,8 @@ const config = new ShipyardConfigBuilder()
 
 ```bash
 # End result
-claude-shipyard init
-claude-shipyard serve
+claude-bazaar init
+claude-bazaar serve
 # → Container running at http://localhost:3000
 # → Thin client at ./dist/thin-client/
 claude plugin install ./dist/thin-client
@@ -984,7 +984,7 @@ claude plugin install ./dist/thin-client
 **Goal**: `build` command for self-hosted deployment
 
 ```bash
-claude-shipyard build
+claude-bazaar build
 # → Docker image: my-plugin:1.0.0
 # → Thin client: ./dist/thin-client/
 docker push my-registry/my-plugin:1.0.0
@@ -1110,7 +1110,7 @@ describe('ThinClientGenerator', () => {
     const thinClient = await generator.generate();
 
     expect(thinClient.commands).toHaveLength(2);
-    expect(thinClient.commands[0].content).toContain('mcp: shipyard-proxy');
+    expect(thinClient.commands[0].content).toContain('mcp: bazaar-proxy');
     expect(thinClient.commands[0].content).toContain('tool: execute_command');
   });
 

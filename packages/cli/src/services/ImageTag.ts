@@ -1,4 +1,4 @@
-import { ShipyardConfig } from '../types.js';
+import { BazaarConfig } from '../types.js';
 
 export class ImageTag {
   readonly name: string;
@@ -9,7 +9,7 @@ export class ImageTag {
     this.version = version;
   }
 
-  static fromConfig(config: ShipyardConfig): ImageTag {
+  static fromConfig(config: BazaarConfig): ImageTag {
     return new ImageTag(config.name, config.version);
   }
 

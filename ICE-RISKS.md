@@ -1,6 +1,6 @@
 # ICE Risk Analysis
 
-Risk assessment for Claude Shipyard open-source headless Claude Code deployment.
+Risk assessment for Claude Bazaar open-source headless Claude Code deployment.
 
 **ICE Score** = Impact × Certainty × Ease-to-mitigate (higher = more critical to address)
 
@@ -87,7 +87,7 @@ Risk assessment for Claude Shipyard open-source headless Claude Code deployment.
 Based on ICE analysis, the fastest path to value is:
 
 1. **Container Runtime only** - Docker image running Claude Code with HTTP API
-2. **Simple CLI** - `shipyard build` → Docker image
+2. **Simple CLI** - `bazaar build` → Docker image
 3. **Skip thin clients** - Users call containers directly via HTTP
 
 This validates the core proposition (can we run Claude Code headless and call it remotely?) before investing in marketplace infrastructure.

@@ -4,7 +4,7 @@ FROM node:20-slim
 RUN npm install -g @anthropic-ai/claude-code@latest
 
 # Create app directories
-RUN mkdir -p /app/runtime /app/plugin /tmp/shipyard
+RUN mkdir -p /app/runtime /app/plugin /tmp/bazaar
 
 WORKDIR /app/runtime
 
@@ -25,7 +25,7 @@ WORKDIR /app/runtime
 ENV PORT=3000
 ENV TIMEOUT=120000
 ENV PLUGIN_DIR=/app/plugin
-ENV WORKSPACE_DIR=/tmp/shipyard
+ENV WORKSPACE_DIR=/tmp/bazaar
 
 EXPOSE 3000
 

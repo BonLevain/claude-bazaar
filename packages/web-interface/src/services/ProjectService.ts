@@ -14,7 +14,7 @@ export interface ProjectSource {
 // Declare global config type
 declare global {
   interface Window {
-    __SHIPYARD_CONFIG__?: {
+    __BAZAAR_CONFIG__?: {
       projects?: string[];
     };
   }
@@ -23,8 +23,8 @@ declare global {
 export class CLIProjectSource implements ProjectSource {
   async getProjects(): Promise<Project[]> {
     // Try runtime config first (from serve command), then fall back to Vite env
-    const config = window.__SHIPYARD_CONFIG__;
-    const projectsEnv = config?.projects || import.meta.env.VITE_SHIPYARD_PROJECTS;
+    const config = window.__BAZAAR_CONFIG__;
+    const projectsEnv = config?.projects || import.meta.env.VITE_BAZAAR_PROJECTS;
 
     if (!projectsEnv) {
       return [];

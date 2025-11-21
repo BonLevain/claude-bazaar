@@ -4,21 +4,21 @@ License text copyright (c) 2020 MariaDB Corporation Ab, All Rights Reserved.
 Parameters
 
 Licensor:             Kaz 916 LLC
-Licensed Work:        Claude Shipyard. The Licensed Work is (c) 2025
+Licensed Work:        Claude Bazaar. The Licensed Work is (c) 2025
                       Kaz 916 LLC
 Additional Use Grant: You may make production use of the Licensed Work, provided
                       Your use does not include offering the Licensed Work to third
                       parties on a hosted or embedded basis in order to compete with
-                      Claude Shipyard's paid version(s) of the Licensed Work. For purposes
+                      Claude Bazaar's paid version(s) of the Licensed Work. For purposes
                       of this license:
 
                       A "competitive offering" is a Product that is offered to third
                       parties on a paid basis, including through paid support
                       arrangements, that significantly overlaps with the capabilities
-                      of Claude Shipyard's paid version(s) of the Licensed Work. If Your
+                      of Claude Bazaar's paid version(s) of the Licensed Work. If Your
                       Product is not a competitive offering when You first make it
                       generally available, it will not become a competitive offering
-                      later due to Claude Shipyard releasing a new version of the Licensed
+                      later due to Claude Bazaar releasing a new version of the Licensed
                       Work with additional capabilities. In addition, Products that
                       are not provided on a paid basis are not competitive.
 
@@ -39,7 +39,7 @@ Additional Use Grant: You may make production use of the Licensed Work, provided
 
                       Hosting or using the Licensed Work(s) for internal purposes
                       within an organization is not considered a competitive
-                      offering. Claude Shipyard considers your organization to include all
+                      offering. Claude Bazaar considers your organization to include all
                       of your affiliates under common control.
 
                       Self-hosting the Licensed Work to deploy and share your own

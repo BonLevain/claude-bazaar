@@ -10,16 +10,16 @@ so that I can use Python, Node, or any custom image for my plugin.
 
 ## Acceptance Criteria
 
-1. **AC1**: When running `claude-shipyard init`, CLI presents runtime options: "Node.js (default)", "Python", "Custom Docker image"
+1. **AC1**: When running `claude-bazaar init`, CLI presents runtime options: "Node.js (default)", "Python", "Custom Docker image"
 2. **AC2**: Selecting "Node.js" sets config `runtime: "node:20-slim"`
 3. **AC3**: Selecting "Python" sets config `runtime: "python:3.11-slim"`
 4. **AC4**: Selecting "Custom" prompts for full Docker image name (e.g., `mcr.microsoft.com/dotnet/sdk:8.0`)
 5. **AC5**: Custom image names are validated against Docker image naming conventions
-6. **AC6**: Selection is saved to `shipyard.config.ts` under `server.runtime`
+6. **AC6**: Selection is saved to `bazaar.config.ts` under `server.runtime`
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add runtime field to ShipyardConfig schema (AC: 6)
+- [ ] Task 1: Add runtime field to BazaarConfig schema (AC: 6)
   - [ ] 1.1: Update `packages/core/src/config/ConfigSchema.ts` with runtime field
   - [ ] 1.2: Add TypeScript types for runtime configuration
   - [ ] 1.3: Set default value to `node:20-slim`
@@ -41,7 +41,7 @@ so that I can use Python, Node, or any custom image for my plugin.
 
 - [ ] Task 5: Save runtime to config file (AC: 6)
   - [ ] 5.1: Update config generation in init command
-  - [ ] 5.2: Ensure `server.runtime` is written to `shipyard.config.ts`
+  - [ ] 5.2: Ensure `server.runtime` is written to `bazaar.config.ts`
 
 - [ ] Task 6: Write tests (All ACs)
   - [ ] 6.1: Unit test for Docker image name validation

@@ -12,8 +12,8 @@ Fastest path to deploy and share headless Claude Code containers (open source).
 ### Creator Flow
 ```bash
 cd my-claude-project
-shipyard init              # Creates shipyard.config.ts
-shipyard build             # Builds Docker image
+bazaar init              # Creates bazaar.config.ts
+bazaar build             # Builds Docker image
 docker push myregistry/my-plugin:latest
 ```
 
@@ -142,7 +142,7 @@ async function copyPluginFiles(workDir: string): Promise<void> {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Shipyard runtime listening on port ${PORT}`);
+  console.log(`Bazaar runtime listening on port ${PORT}`);
 });
 ```
 
@@ -180,11 +180,11 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 export async function init(projectDir: string = process.cwd()): Promise<void> {
-  const configPath = path.join(projectDir, 'shipyard.config.ts');
+  const configPath = path.join(projectDir, 'bazaar.config.ts');
 
   // Check if already initialized
   if (await fileExists(configPath)) {
-    console.log('Already initialized (shipyard.config.ts exists)');
+    console.log('Already initialized (bazaar.config.ts exists)');
     return;
   }
 
@@ -213,7 +213,7 @@ export async function init(projectDir: string = process.cwd()): Promise<void> {
 `;
 
   await fs.writeFile(configPath, config);
-  console.log(`Created shipyard.config.ts`);
+  console.log(`Created bazaar.config.ts`);
 
   // Add to .gitignore if needed
   await ensureGitignore(projectDir);
@@ -231,13 +231,13 @@ async function fileExists(path: string): Promise<boolean> {
 async function ensureGitignore(projectDir: string): Promise<void> {
   const gitignorePath = path.join(projectDir, '.gitignore');
   const ignoreEntries = [
-    '# Shipyard',
-    '.shipyard/',
+    '# Bazaar',
+    '.bazaar/',
   ].join('\n');
 
   try {
     const content = await fs.readFile(gitignorePath, 'utf-8');
-    if (!content.includes('.shipyard/')) {
+    if (!content.includes('.bazaar/')) {
       await fs.appendFile(gitignorePath, `\n${ignoreEntries}\n`);
     }
   } catch {
@@ -300,7 +300,7 @@ export async function build(
 }
 
 async function loadConfig(projectDir: string): Promise<any> {
-  const configPath = path.join(projectDir, 'shipyard.config.ts');
+  const configPath = path.join(projectDir, 'bazaar.config.ts');
 
   // For MVP, just read and eval (proper implementation would use ts-node or esbuild)
   const content = await fs.readFile(configPath, 'utf-8');
@@ -321,8 +321,8 @@ WORKDIR /app/runtime
 
 # Copy runtime (would be published to npm in real implementation)
 # For now, assume it's built locally
-COPY node_modules/@shipyard/container-runtime/dist ./dist
-COPY node_modules/@shipyard/container-runtime/package.json ./
+COPY node_modules/@bazaar/container-runtime/dist ./dist
+COPY node_modules/@bazaar/container-runtime/package.json ./
 
 # Copy plugin files
 WORKDIR /app/plugin
@@ -338,7 +338,7 @@ ENV TIMEOUT=${config.runtime?.timeout || 120000}
 CMD ["node", "dist/server.js"]
 `;
 
-  const dockerfilePath = path.join(projectDir, '.shipyard', 'Dockerfile');
+  const dockerfilePath = path.join(projectDir, '.bazaar', 'Dockerfile');
   await fs.mkdir(path.dirname(dockerfilePath), { recursive: true });
   await fs.writeFile(dockerfilePath, dockerfile);
 
@@ -360,13 +360,13 @@ import { build } from './commands/build.js';
 const program = new Command();
 
 program
-  .name('shipyard')
+  .name('bazaar')
   .description('Deploy Claude Code projects as containers')
   .version('0.1.0');
 
 program
   .command('init')
-  .description('Initialize a new Shipyard project')
+  .description('Initialize a new Bazaar project')
   .action(async () => {
     await init();
   });
@@ -389,7 +389,7 @@ program.parse();
 ## Project Structure
 
 ```
-claude-shipyard/
+claude-bazaar/
 ├── packages/
 │   ├── cli/
 │   │   ├── src/
@@ -417,10 +417,10 @@ claude-shipyard/
 ### `packages/cli/package.json`
 ```json
 {
-  "name": "@shipyard/cli",
+  "name": "@bazaar/cli",
   "version": "0.1.0",
   "bin": {
-    "shipyard": "./dist/index.js"
+    "bazaar": "./dist/index.js"
   },
   "dependencies": {
     "commander": "^11.0.0",
@@ -436,7 +436,7 @@ claude-shipyard/
 ### `packages/container-runtime/package.json`
 ```json
 {
-  "name": "@shipyard/container-runtime",
+  "name": "@bazaar/container-runtime",
   "version": "0.1.0",
   "dependencies": {
     "express": "^4.18.0"
@@ -465,7 +465,7 @@ claude-shipyard/
    - [ ] Handles errors gracefully
 
 2. **CLI Init**
-   - [ ] Creates shipyard.config.ts
+   - [ ] Creates bazaar.config.ts
    - [ ] Doesn't overwrite existing config
    - [ ] Updates .gitignore
 
@@ -476,8 +476,8 @@ claude-shipyard/
    - [ ] Push works (optional)
 
 4. **End-to-End**
-   - [ ] `shipyard init` in sample project
-   - [ ] `shipyard build` produces runnable image
+   - [ ] `bazaar init` in sample project
+   - [ ] `bazaar build` produces runnable image
    - [ ] Container responds to HTTP requests
    - [ ] Claude Code executes prompts correctly
 
@@ -499,7 +499,7 @@ Once this works reliably:
 1. **Add WebSocket support** - For streaming responses
 2. **Add health checks** - `/health` endpoint for orchestration
 3. **Add thin client generation** - MCP proxy layer for "native feel"
-4. **Add GitHub Actions workflow generation** - `shipyard deploy`
+4. **Add GitHub Actions workflow generation** - `bazaar deploy`
 
 ---
 

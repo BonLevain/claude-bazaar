@@ -1,4 +1,4 @@
-export interface ShipyardConfig {
+export interface BazaarConfig {
   name: string;
   version: string;
   description: string;

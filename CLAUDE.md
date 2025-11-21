@@ -1,10 +1,10 @@
-# Claude Shipyard
+# Claude Bazaar
 
 A CLI tool for sharing and monetizing Claude Code projects with authentication, user management, and payment workflows.
 
 ## Project Overview
 
-Claude Shipyard enables non-technical Claude Code users to deploy their projects as accessible API/websocket services. The CLI generates deployment configurations (GitHub Actions) that ship Claude Code projects to cloud platforms with built-in auth and billing infrastructure.
+Claude Bazaar enables non-technical Claude Code users to deploy their projects as accessible API/websocket services. The CLI generates deployment configurations (GitHub Actions) that ship Claude Code projects to cloud platforms with built-in auth and billing infrastructure.
 
 ### Core Value Proposition
 - **Creators**: Package and monetize Claude Code projects without DevOps knowledge
@@ -18,8 +18,8 @@ Claude Shipyard enables non-technical Claude Code users to deploy their projects
 - Manages platform-specific deployment strategies
 
 ### Deployment Flow
-1. User runs `claude-shipyard init` in project root
-2. CLI generates `.claude-shipyard/config.ts` and `.github/workflows/shipyard-deploy.yml`
+1. User runs `claude-bazaar init` in project root
+2. CLI generates `.claude-bazaar/config.ts` and `.github/workflows/bazaar-deploy.yml`
 3. User commits and pushes to GitHub
 4. GitHub Action deploys to AWS ECS
 5. Service runs API/websocket server that triggers Claude Code and returns results
@@ -35,7 +35,7 @@ Claude Shipyard enables non-technical Claude Code users to deploy their projects
 - **Runtime**: Node.js
 - **Package Manager**: npm
 - **Testing**: Vitest (integration tests on main flows)
-- **Distribution**: npm package (`claude-shipyard`)
+- **Distribution**: npm package (`claude-bazaar`)
 - **CLI UI**: Ink (React-based terminal UI)
 
 ### Deployment Platform (Initial)
@@ -82,7 +82,7 @@ class AzureDeploymentStrategy implements DeploymentStrategy { } // Future
 ## Project Structure
 
 ```
-claude-shipyard/
+claude-bazaar/
 ├── src/
 │   ├── index.ts              # CLI entry point
 │   ├── commands/
@@ -139,7 +139,7 @@ const secret = await passwordInput('API key:');
 
 ## CLI Commands
 
-### `claude-shipyard init`
+### `claude-bazaar init`
 Interactive initialization that generates all deployment artifacts.
 
 **Prompts for:**
@@ -150,15 +150,15 @@ Interactive initialization that generates all deployment artifacts.
 - AWS credentials (stored as GitHub secrets)
 
 **Generates:**
-- `.claude-shipyard/config.ts` - Project configuration (committed to repo)
-- `.github/workflows/shipyard-deploy.yml` - Deployment workflow
+- `.claude-bazaar/config.ts` - Project configuration (committed to repo)
+- `.github/workflows/bazaar-deploy.yml` - Deployment workflow
 
-### `claude-shipyard --help`
+### `claude-bazaar --help`
 Display help information.
 
 ## Configuration
 
-### Project Config (`.claude-shipyard/config.ts`)
+### Project Config (`.claude-bazaar/config.ts`)
 ```typescript
 export default {
   projectName: 'my-claude-project',
@@ -176,12 +176,12 @@ export default {
 ### Environment Variables (Injected at Runtime)
 Convention for auth/billing env vars:
 ```
-SHIPYARD_AUTH_ENDPOINT=https://auth.claude-shipyard.com
-SHIPYARD_AUTH_API_KEY=xxx
-SHIPYARD_BILLING_ENDPOINT=https://billing.claude-shipyard.com
-SHIPYARD_BILLING_API_KEY=xxx
-SHIPYARD_USER_ID=xxx
-SHIPYARD_SUBSCRIPTION_TIER=xxx
+BAZAAR_AUTH_ENDPOINT=https://auth.claude-bazaar.com
+BAZAAR_AUTH_API_KEY=xxx
+BAZAAR_BILLING_ENDPOINT=https://billing.claude-bazaar.com
+BAZAAR_BILLING_API_KEY=xxx
+BAZAAR_USER_ID=xxx
+BAZAAR_SUBSCRIPTION_TIER=xxx
 ```
 
 ### GitHub Secrets (Set via CLI)
