@@ -1,13 +1,15 @@
 # @shipyard/web-interface
 
-Browser-based chat interface for Shipyard plugins.
+Browser-based chat interface for Claude Shipyard projects.
 
 ## Features
 
-- Chat-style UI with streaming responses
+- Clean chat UI with markdown rendering
+- Project selector for multiple running containers
 - File upload for context
-- Markdown rendering
-- Connects to container-runtime `/execute` endpoint
+- Slash command autocomplete
+- Static file browser
+- API key management in settings
 
 ## Development
 
@@ -15,21 +17,47 @@ Browser-based chat interface for Shipyard plugins.
 # Install dependencies
 npm install
 
-# Start dev server (assumes container-runtime running on port 3000)
+# Start dev server
 npm run dev
 
 # Build for production
 npm run build
 ```
 
-## Usage
+## Architecture
 
-1. Start your container-runtime on port 3000
-2. Run `npm run dev`
-3. Open http://localhost:5173
+The web interface is bundled into the CLI package and served via the `shipyard serve` command. It connects directly to project containers using the URLs provided via `--projects` flag.
 
-The Vite dev server proxies `/api/*` requests to `http://localhost:3000`.
+### Runtime Configuration
 
-## Environment
+When served via CLI, configuration is injected at runtime:
 
-For production, configure the API endpoint via environment variables or update the fetch URL in `App.tsx`.
+```javascript
+window.__SHIPYARD_CONFIG__ = {
+  projects: ['http://localhost:3000']
+};
+```
+
+The `ProjectService` reads this config and fetches project info from each container's `/app/info` endpoint.
+
+## Components
+
+- **ProjectSelector** - Dropdown to switch between connected projects
+- **ProjectService** - Manages project discovery and status checking
+- **ProjectContext** - React context providing `apiCall()` and project state
+
+## API Endpoints
+
+The interface expects these endpoints from project containers:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/app/info` | GET | Project name, description, version |
+| `/commands` | GET | Available slash commands |
+| `/execute` | POST | Execute a prompt |
+| `/static/files` | GET | List static files |
+| `/filesystem` | GET | Download static files |
+
+## Build Output
+
+Production build outputs to `dist/` and is copied to `cli/web-ui/` during the CLI bundle process.
