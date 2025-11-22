@@ -1,5 +1,8 @@
 import { spawn, ChildProcess } from 'child_process';
+import { createInterface } from 'readline';
 import { EventEmitter } from 'events';
+import { randomUUID } from 'crypto';
+import { StreamEvent } from './types.js';
 
 export interface ExecutionResult {
   output: string;
@@ -8,8 +11,16 @@ export interface ExecutionResult {
 
 export interface StreamingExecution extends EventEmitter {
   on(event: 'data', listener: (chunk: string) => void): this;
+  on(event: 'event', listener: (event: StreamEvent) => void): this;
   on(event: 'end', listener: (result: ExecutionResult) => void): this;
   on(event: 'error', listener: (error: Error) => void): this;
+  on(event: 'cancelled', listener: () => void): this;
+}
+
+export interface StreamingExecutionHandle {
+  emitter: StreamingExecution;
+  executionId: string;
+  process: ChildProcess;
 }
 
 export class ClaudeExecutor {
@@ -64,41 +75,61 @@ export class ClaudeExecutor {
     prompt: string,
     timeout?: number,
     apiKey?: string
-  ): StreamingExecution {
+  ): StreamingExecutionHandle {
     const emitter = new EventEmitter() as StreamingExecution;
     const effectiveTimeout = timeout ?? this.defaultTimeout;
+    const executionId = randomUUID();
 
-    const process = this.spawnClaude(workspacePath, prompt, true, apiKey);
-    const timeoutId = this.setupTimeout(process, effectiveTimeout, (err) => emitter.emit('error', err));
+    const proc = this.spawnClaude(workspacePath, prompt, true, apiKey);
+    const timeoutId = this.setupTimeout(proc, effectiveTimeout, (err) => emitter.emit('error', err));
 
     let stdout = '';
     let stderr = '';
 
-    process.stdout?.on('data', (data: Buffer) => {
-      const chunk = data.toString();
-      stdout += chunk;
-      emitter.emit('data', chunk);
+    // Parse stream-json output line by line
+    const rl = createInterface({
+      input: proc.stdout!,
+      crlfDelay: Infinity,
     });
 
-    process.stderr?.on('data', (data: Buffer) => {
+    rl.on('line', (line) => {
+      if (!line.trim()) return;
+
+      stdout += line + '\n';
+
+      try {
+        const event = JSON.parse(line) as StreamEvent;
+        emitter.emit('event', event);
+        // Also emit raw data for backwards compatibility
+        emitter.emit('data', line);
+      } catch {
+        // Non-JSON line, emit as raw data
+        emitter.emit('data', line);
+      }
+    });
+
+    proc.stderr?.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
 
-    process.on('close', (code) => {
+    proc.on('close', (code) => {
       clearTimeout(timeoutId);
       if (code === 0) {
-        emitter.emit('end', { output: stdout, exitCode: code });
+        emitter.emit('end', { output: stdout, exitCode: code ?? 0 });
+      } else if (code === null || proc.killed) {
+        // Process was killed (cancelled)
+        emitter.emit('cancelled');
       } else {
         emitter.emit('error', new Error(stderr || `Claude Code exited with code ${code}`));
       }
     });
 
-    process.on('error', (error) => {
+    proc.on('error', (error) => {
       clearTimeout(timeoutId);
       emitter.emit('error', error);
     });
 
-    return emitter;
+    return { emitter, executionId, process: proc };
   }
 
   private spawnClaude(
@@ -107,8 +138,10 @@ export class ClaudeExecutor {
     streaming: boolean = false,
     apiKey?: string
   ): ChildProcess {
-    const args = ['-p', prompt];
-    if (!streaming) {
+    const args = ['-p', prompt, '--dangerously-skip-permissions'];
+    if (streaming) {
+      args.push('--output-format', 'stream-json', '--verbose');
+    } else {
       args.push('--output-format', 'json');
     }
 

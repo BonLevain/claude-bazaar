@@ -5,9 +5,83 @@ import { IoChatbubbleOutline, IoFolderOutline, IoSettingsOutline } from 'react-i
 import { useProjects } from './contexts/ProjectContext';
 import { ProjectSelector } from './components/ProjectSelector';
 
+// Stream event types (matching container-runtime)
+interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+interface ToolUseContent {
+  type: 'tool_use';
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+interface ToolResultContent {
+  type: 'tool_result';
+  tool_use_id: string;
+  content: string | ContentBlock[];
+  is_error?: boolean;
+}
+
+interface ThinkingContent {
+  type: 'thinking';
+  thinking: string;
+}
+
+type ContentBlock = TextContent | ToolUseContent | ToolResultContent | ThinkingContent;
+
+interface AssistantMessageEvent {
+  type: 'assistant';
+  message: {
+    role: 'assistant';
+    content: ContentBlock[];
+  };
+}
+
+interface ResultEvent {
+  type: 'result';
+  subtype: 'success' | 'error';
+  total_cost_usd: number;
+  duration_ms: number;
+  num_turns: number;
+  result: string;
+  session_id: string;
+  is_error: boolean;
+}
+
+interface InitEvent {
+  type: 'init';
+  session_id: string;
+}
+
+interface PartialEvent {
+  type: 'partial';
+  delta: {
+    type: string;
+    text?: string;
+  };
+}
+
+interface ExecutionStartEvent {
+  type: 'execution_start';
+  executionId: string;
+}
+
+type StreamEvent = InitEvent | ExecutionStartEvent | AssistantMessageEvent | PartialEvent | ResultEvent | { type: 'stream_end' | 'error' | 'cancelled'; error?: string };
+
+interface StreamingMessage {
+  role: 'assistant';
+  events: ContentBlock[];
+  isStreaming: boolean;
+  result?: ResultEvent;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  streaming?: StreamingMessage;
 }
 
 interface FileItem {
@@ -114,6 +188,139 @@ function StaticFileCard({ result }: { result: StaticFilesResult }) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 py-2">
       <FileTree node={result.files} urlPath="/api/filesystem" />
+    </div>
+  );
+}
+
+// Random "ing" words for loading animation
+const LOADING_WORDS = [
+  'Thinking', 'Pondering', 'Vibing', 'Doodling', 'Brewing', 'Crafting',
+  'Exploring', 'Wandering', 'Dreaming', 'Scheming', 'Plotting', 'Tinkering',
+  'Mulling', 'Musing', 'Cooking', 'Stirring', 'Mixing', 'Blending',
+  'Conjuring', 'Summoning', 'Invoking', 'Channeling', 'Focusing', 'Centering',
+  'Gathering', 'Assembling', 'Building', 'Forging', 'Shaping', 'Molding',
+];
+
+function LoadingWord() {
+  const [word, setWord] = useState(() => LOADING_WORDS[Math.floor(Math.random() * LOADING_WORDS.length)]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWord(LOADING_WORDS[Math.floor(Math.random() * LOADING_WORDS.length)]);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span className="text-gray-500 italic">{word}...</span>
+  );
+}
+
+// Terminal-like streaming message display
+function StreamingMessageDisplay({ streaming }: { streaming: StreamingMessage }) {
+  return (
+    <div className="font-mono text-sm space-y-2">
+      {streaming.events.map((block, index) => {
+        switch (block.type) {
+          case 'text':
+            return (
+              <div key={index} className="whitespace-pre-wrap text-gray-900">
+                <ReactMarkdown>{block.text}</ReactMarkdown>
+              </div>
+            );
+
+          case 'tool_use':
+            return (
+              <div key={index} className="bg-blue-50 border border-blue-200 rounded p-3 my-2">
+                <div className="flex items-center gap-2 text-blue-700 font-semibold mb-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {block.name}
+                </div>
+                <pre className="text-xs text-blue-600 overflow-x-auto max-h-40 overflow-y-auto">
+                  {JSON.stringify(block.input, null, 2)}
+                </pre>
+              </div>
+            );
+
+          case 'tool_result':
+            const resultContent = typeof block.content === 'string'
+              ? block.content
+              : JSON.stringify(block.content, null, 2);
+            const isTruncated = resultContent.length > 500;
+            const displayContent = isTruncated ? resultContent.slice(0, 500) + '...' : resultContent;
+
+            return (
+              <div
+                key={index}
+                className={`border rounded p-3 my-2 ${
+                  block.is_error
+                    ? 'bg-red-50 border-red-200'
+                    : 'bg-green-50 border-green-200'
+                }`}
+              >
+                <div className={`flex items-center gap-2 font-semibold mb-2 ${
+                  block.is_error ? 'text-red-700' : 'text-green-700'
+                }`}>
+                  {block.is_error ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {block.is_error ? 'Error' : 'Result'}
+                </div>
+                <pre className={`text-xs overflow-x-auto max-h-60 overflow-y-auto whitespace-pre-wrap ${
+                  block.is_error ? 'text-red-600' : 'text-green-600'
+                }`}>
+                  {displayContent}
+                </pre>
+              </div>
+            );
+
+          case 'thinking':
+            return (
+              <div key={index} className="bg-purple-50 border border-purple-200 rounded p-3 my-2">
+                <div className="flex items-center gap-2 text-purple-700 font-semibold mb-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  Thinking
+                </div>
+                <div className="text-xs text-purple-600 italic max-h-40 overflow-y-auto">
+                  {block.thinking}
+                </div>
+              </div>
+            );
+
+          default:
+            return null;
+        }
+      })}
+
+      {streaming.isStreaming && (
+        <div className="flex items-center gap-2 text-gray-500">
+          <div className="flex space-x-1">
+            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
+            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+          </div>
+          <LoadingWord />
+        </div>
+      )}
+
+      {streaming.result && !streaming.isStreaming && (
+        <div className="text-xs text-gray-400 mt-3 pt-2 border-t border-gray-200 flex gap-4">
+          <span>{(streaming.result.duration_ms / 1000).toFixed(1)}s</span>
+          <span>${streaming.result.total_cost_usd.toFixed(4)}</span>
+          <span>{streaming.result.num_turns} turns</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -296,6 +503,8 @@ export default function App() {
 
   // Generate session ID for conversation context
   const [sessionId] = useState(() => crypto.randomUUID());
+  const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -375,12 +584,60 @@ export default function App() {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleCancel = async () => {
+    // Abort the fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    // Also call the cancel endpoint if we have an executionId
+    if (currentExecutionId && selectedProject) {
+      try {
+        await fetch(`${selectedProject.url}/execute/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ executionId: currentExecutionId }),
+        });
+      } catch {
+        // Ignore errors - the process may already be done
+      }
+    }
+
+    setCurrentExecutionId(null);
+    setIsLoading(false);
+
+    // Mark the last message as cancelled
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      const lastMessage = newMessages[newMessages.length - 1];
+      if (lastMessage?.streaming) {
+        lastMessage.streaming = {
+          ...lastMessage.streaming,
+          events: [
+            ...lastMessage.streaming.events,
+            { type: 'text', text: '\n\n*Cancelled*' },
+          ],
+          isStreaming: false,
+        };
+      }
+      return newMessages;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
     setInput('');
+
+    // Handle /clear command locally
+    if (userMessage === '/clear') {
+      setMessages([]);
+      return;
+    }
+
     setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
@@ -397,16 +654,26 @@ export default function App() {
         return;
       }
 
-      const response = await apiCall('/execute', {
+      // Get API key from localStorage
+      const apiKey = localStorage.getItem('bazaar_api_key');
+
+      // Create AbortController for this request
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      // Use streaming endpoint
+      const response = await fetch(`${selectedProject.url}/execute/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(apiKey ? { 'x-api-key': apiKey } : {}),
         },
         body: JSON.stringify({
           prompt: userMessage,
           files: files.length > 0 ? files : undefined,
           sessionId,
         }),
+        signal: abortController.signal,
       });
 
       if (response.status === 401) {
@@ -425,39 +692,136 @@ export default function App() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Handle JSON response from /execute endpoint
-      const data = await response.json();
+      // Initialize streaming message
+      const streamingMessage: StreamingMessage = {
+        role: 'assistant',
+        events: [],
+        isStreaming: true,
+      };
 
-      let assistantMessage = '';
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: '', streaming: streamingMessage },
+      ]);
 
-      if (data.success && data.output) {
-        // Parse the output JSON string
-        try {
-          const outputData = JSON.parse(data.output);
-          if (outputData.is_error) {
-            assistantMessage = `Error: ${outputData.error || outputData.result || 'Command failed'}`;
-          } else if ('result' in outputData) {
-            // Use result field if it exists (even if empty string)
-            assistantMessage = outputData.result || 'Command completed with no output.';
-          } else {
-            // No result field, show raw output
-            assistantMessage = data.output;
-          }
-        } catch {
-          // If not JSON, use raw output
-          assistantMessage = data.output;
-        }
-      } else if (data.error) {
-        assistantMessage = `Error: ${data.error}`;
-      } else {
-        assistantMessage = 'No response received';
+      // Read SSE stream
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
       }
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: assistantMessage }]);
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6);
+            if (!jsonStr.trim()) continue;
+
+            try {
+              const event = JSON.parse(jsonStr) as StreamEvent;
+
+              if (event.type === 'execution_start') {
+                setCurrentExecutionId((event as ExecutionStartEvent).executionId);
+              } else if (event.type === 'assistant') {
+                const assistantEvent = event as AssistantMessageEvent;
+                // Add content blocks to streaming events
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[newMessages.length - 1];
+                  if (lastMessage?.streaming) {
+                    lastMessage.streaming = {
+                      ...lastMessage.streaming,
+                      events: [...lastMessage.streaming.events, ...assistantEvent.message.content],
+                    };
+                  }
+                  return newMessages;
+                });
+              } else if (event.type === 'result') {
+                const resultEvent = event as ResultEvent;
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[newMessages.length - 1];
+                  if (lastMessage?.streaming) {
+                    lastMessage.streaming = {
+                      ...lastMessage.streaming,
+                      isStreaming: false,
+                      result: resultEvent,
+                    };
+                  }
+                  return newMessages;
+                });
+              } else if (event.type === 'stream_end') {
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[newMessages.length - 1];
+                  if (lastMessage?.streaming) {
+                    lastMessage.streaming = {
+                      ...lastMessage.streaming,
+                      isStreaming: false,
+                    };
+                  }
+                  return newMessages;
+                });
+              } else if (event.type === 'cancelled') {
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[newMessages.length - 1];
+                  if (lastMessage?.streaming) {
+                    lastMessage.streaming = {
+                      ...lastMessage.streaming,
+                      events: [
+                        ...lastMessage.streaming.events,
+                        { type: 'text', text: '\n\n*Cancelled*' },
+                      ],
+                      isStreaming: false,
+                    };
+                  }
+                  return newMessages;
+                });
+              } else if (event.type === 'error') {
+                const errorEvent = event as { type: 'error'; error?: string };
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[newMessages.length - 1];
+                  if (lastMessage?.streaming) {
+                    lastMessage.streaming = {
+                      ...lastMessage.streaming,
+                      events: [
+                        ...lastMessage.streaming.events,
+                        { type: 'text', text: `Error: ${errorEvent.error || 'Unknown error'}` },
+                      ],
+                      isStreaming: false,
+                    };
+                  }
+                  return newMessages;
+                });
+              }
+            } catch {
+              // Skip malformed JSON
+            }
+          }
+        }
+      }
 
       // Clear files after successful execution
       setFiles([]);
     } catch (error) {
+      // Don't show error for user-initiated cancellation
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Silently ignore - cancellation is already handled by handleCancel
+        return;
+      }
+
       console.error('Error:', error);
       setMessages((prev) => [
         ...prev,
@@ -468,6 +832,8 @@ export default function App() {
       ]);
     } finally {
       setIsLoading(false);
+      setCurrentExecutionId(null);
+      abortControllerRef.current = null;
     }
   };
 
@@ -674,22 +1040,26 @@ export default function App() {
                         }`}
                       >
                         {message.role === 'assistant' ? (
-                          <div className="prose prose-sm max-w-none">
-                            <ReactMarkdown
-                              components={{
-                                a: ({ href, children }) => (
-                                  <a
-                                    href={href}
-                                    className="text-blue-600 underline hover:text-blue-800"
-                                  >
-                                    {children}
-                                  </a>
-                                ),
-                              }}
-                            >
-                              {message.content || '...'}
-                            </ReactMarkdown>
-                          </div>
+                          message.streaming ? (
+                            <StreamingMessageDisplay streaming={message.streaming} />
+                          ) : (
+                            <div className="prose prose-sm max-w-none">
+                              <ReactMarkdown
+                                components={{
+                                  a: ({ href, children }) => (
+                                    <a
+                                      href={href}
+                                      className="text-blue-600 underline hover:text-blue-800"
+                                    >
+                                      {children}
+                                    </a>
+                                  ),
+                                }}
+                              >
+                                {message.content || '...'}
+                              </ReactMarkdown>
+                            </div>
+                          )
                         ) : (
                           <p className="whitespace-pre-wrap">{message.content}</p>
                         )}
@@ -697,7 +1067,7 @@ export default function App() {
                     </div>
                   ))}
 
-                  {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+                  {isLoading && messages[messages.length - 1]?.role !== 'assistant' && !messages[messages.length - 1]?.streaming && (
                     <div className="flex justify-start">
                       <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
                         <div className="flex space-x-2">
@@ -790,7 +1160,7 @@ export default function App() {
 
                       {/* Bottom toolbar */}
                       <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100">
-                        <ProjectSelector />
+                        <ProjectSelector dropUp />
                         <div className="flex items-center space-x-2">
                           <label className="cursor-pointer">
                             <input
@@ -816,29 +1186,28 @@ export default function App() {
                             </div>
                           </label>
 
-                          <button
-                            type="submit"
-                            disabled={isLoading || !input.trim()}
-                            className="p-1.5 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {isLoading ? (
-                              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                  fill="none"
-                                />
+                          {isLoading ? (
+                            <button
+                              type="button"
+                              onClick={handleCancel}
+                              className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                              title="Cancel"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
                                 />
                               </svg>
-                            ) : (
+                            </button>
+                          ) : (
+                            <button
+                              type="submit"
+                              disabled={!input.trim()}
+                              className="p-1.5 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                            >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                   strokeLinecap="round"
@@ -847,8 +1216,8 @@ export default function App() {
                                   d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
                                 />
                               </svg>
-                            )}
-                          </button>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

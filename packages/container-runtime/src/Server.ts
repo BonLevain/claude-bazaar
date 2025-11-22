@@ -6,6 +6,7 @@ import { AuthManager } from './auth/AuthManager.js';
 import { AuthErrorResponse } from './auth/types.js';
 import { CommandDiscovery } from './CommandDiscovery.js';
 import { StaticFilesService } from './StaticFilesService.js';
+import { executionRegistry } from './ExecutionRegistry.js';
 
 export class Server {
   private readonly app: Express;
@@ -146,27 +147,54 @@ export class Server {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        const stream = await this.executionService.executeStreaming(request);
+        const { emitter, executionId } = await this.executionService.executeStreaming(request);
 
-        stream.on('data', (chunk) => {
-          res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+        // Send execution ID as first event
+        res.write(`data: ${JSON.stringify({ type: 'execution_start', executionId })}\n\n`);
+
+        // Forward parsed stream-json events
+        emitter.on('event', (event) => {
+          res.write(`data: ${JSON.stringify(event)}\n\n`);
         });
 
-        stream.on('end', () => {
-          res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+        emitter.on('end', () => {
+          res.write(`data: ${JSON.stringify({ type: 'stream_end' })}\n\n`);
           res.end();
         });
 
-        stream.on('error', (error) => {
+        emitter.on('error', (error) => {
           res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
           res.end();
         });
 
+        emitter.on('cancelled', () => {
+          res.write(`data: ${JSON.stringify({ type: 'cancelled' })}\n\n`);
+          res.end();
+        });
+
         req.on('close', () => {
-          // Client disconnected
+          // Client disconnected - cancel the execution
+          executionRegistry.cancel(executionId);
         });
       } catch (error) {
         next(error);
+      }
+    });
+
+    // Cancel execution endpoint
+    this.app.post('/execute/cancel', async (req: Request, res: Response) => {
+      const { executionId } = req.body;
+
+      if (!executionId || typeof executionId !== 'string') {
+        return res.status(400).json({ success: false, error: 'executionId is required' });
+      }
+
+      const cancelled = executionRegistry.cancel(executionId);
+
+      if (cancelled) {
+        res.json({ success: true, message: 'Execution cancelled' });
+      } else {
+        res.status(404).json({ success: false, error: 'Execution not found or already completed' });
       }
     });
 

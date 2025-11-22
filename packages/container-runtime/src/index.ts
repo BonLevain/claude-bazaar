@@ -50,4 +50,20 @@ main().catch((error) => {
 
 // Export for testing
 export { Server, ExecutionService, WorkspaceManager, ClaudeExecutor, SessionManager };
-export type { RuntimeConfig, ExecuteRequest, ExecuteResponse, FileInput } from './types.js';
+export type {
+  RuntimeConfig,
+  ExecuteRequest,
+  ExecuteResponse,
+  FileInput,
+  StreamEvent,
+  InitEvent,
+  UserMessageEvent,
+  AssistantMessageEvent,
+  PartialEvent,
+  ResultEvent,
+  ContentBlock,
+  TextContent,
+  ToolUseContent,
+  ToolResultContent,
+  ThinkingContent,
+} from './types.js';

@@ -1,13 +1,21 @@
 import { WorkspaceManager } from './WorkspaceManager.js';
 import { ClaudeExecutor, StreamingExecution } from './ClaudeExecutor.js';
 import { SessionManager } from './SessionManager.js';
-import { ExecuteRequest, ExecuteResponse } from './types.js';
+import { ExecuteRequest, ExecuteResponse, StreamEvent } from './types.js';
 import { EventEmitter } from 'events';
+import { executionRegistry } from './ExecutionRegistry.js';
 
-export interface StreamingExecutionHandle extends EventEmitter {
+export interface StreamingExecutionResult {
+  emitter: StreamingExecution;
+  executionId: string;
+}
+
+export interface StreamingExecutionEmitter extends EventEmitter {
   on(event: 'data', listener: (chunk: string) => void): this;
+  on(event: 'event', listener: (event: StreamEvent) => void): this;
   on(event: 'end', listener: () => void): this;
   on(event: 'error', listener: (error: Error) => void): this;
+  on(event: 'cancelled', listener: () => void): this;
 }
 
 export class ExecutionService {
@@ -107,13 +115,13 @@ export class ExecutionService {
     }
   }
 
-  async executeStreaming(request: ExecuteRequest): Promise<StreamingExecutionHandle> {
-    const emitter = new EventEmitter() as StreamingExecutionHandle;
+  async executeStreaming(request: ExecuteRequest): Promise<StreamingExecutionResult> {
+    const emitter = new EventEmitter() as StreamingExecution;
 
     // Use session-based streaming if sessionId provided
     if (request.sessionId) {
-      this.executeStreamingWithSession(request, emitter);
-      return emitter;
+      const executionId = await this.executeStreamingWithSession(request, emitter);
+      return { emitter, executionId };
     }
 
     // Legacy: stateless streaming
@@ -126,28 +134,41 @@ export class ExecutionService {
         await this.workspaceManager.writeFiles(workspacePath, request.files);
       }
 
-      const stream = this.executor.executeStreaming(
+      const handle = this.executor.executeStreaming(
         workspacePath,
         request.prompt,
         request.timeout,
         request.apiKey
       );
 
-      stream.on('data', (chunk) => emitter.emit('data', chunk));
+      // Register with execution registry
+      executionRegistry.register(handle.executionId, handle.process, request.sessionId, emitter);
 
-      stream.on('end', () => {
+      handle.emitter.on('data', (chunk) => emitter.emit('data', chunk));
+      handle.emitter.on('event', (event) => emitter.emit('event', event));
+
+      handle.emitter.on('end', () => {
         if (workspacePath) {
           this.workspaceManager.cleanup(workspacePath);
         }
         emitter.emit('end');
       });
 
-      stream.on('error', (error) => {
+      handle.emitter.on('error', (error) => {
         if (workspacePath) {
           this.workspaceManager.cleanup(workspacePath);
         }
         emitter.emit('error', error);
       });
+
+      handle.emitter.on('cancelled', () => {
+        if (workspacePath) {
+          this.workspaceManager.cleanup(workspacePath);
+        }
+        emitter.emit('cancelled');
+      });
+
+      return { emitter, executionId: handle.executionId };
 
     } catch (error) {
       if (workspacePath) {
@@ -156,15 +177,17 @@ export class ExecutionService {
       process.nextTick(() => {
         emitter.emit('error', error instanceof Error ? error : new Error(String(error)));
       });
+      return { emitter, executionId: '' };
     }
-
-    return emitter;
   }
 
   private async executeStreamingWithSession(
     request: ExecuteRequest,
-    emitter: StreamingExecutionHandle
-  ): Promise<void> {
+    emitter: StreamingExecution
+  ): Promise<string> {
+    const { randomUUID } = await import('crypto');
+    const executionId = randomUUID();
+
     try {
       const session = await this.sessionManager.getOrCreate(
         request.sessionId!,
@@ -172,15 +195,23 @@ export class ExecutionService {
         request.apiKey
       );
 
-      await this.sessionManager.execute(
+      const result = await this.sessionManager.executeStreaming(
         session,
         request.prompt,
-        (text) => emitter.emit('data', text)
+        (event) => emitter.emit('event', event),
+        executionId
       );
+
+      // Register process if returned
+      if (result.process) {
+        executionRegistry.register(executionId, result.process, request.sessionId, emitter);
+      }
 
       emitter.emit('end');
     } catch (error) {
       emitter.emit('error', error instanceof Error ? error : new Error(String(error)));
     }
+
+    return executionId;
   }
 }

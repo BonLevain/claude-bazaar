@@ -4,6 +4,10 @@
 
 ### 🚀 Share and Monetize your Claude Code Projects 💰
 
+⚠️ **PRE-ALPHA SOFTWARE** ⚠️
+
+This project is in early development and intended for testing purposes only. Use caution when running in production environments.
+
 </div>
 
 ---
@@ -136,11 +140,11 @@ export default {
 
 ## CLI Commands
 
-### `claude-claude-bazaar init`
+### `claude-bazaar init`
 
 Interactive setup that creates your configuration file.
 
-### `claude-claude-bazaar build`
+### `claude-bazaar build`
 
 Build a Docker image from your project.
 
@@ -150,7 +154,7 @@ claude-bazaar build -t myapp:v1        # Custom tag
 claude-bazaar build --push --registry  # Push to registry
 ```
 
-### `claude-claude-bazaar run`
+### `claude-bazaar run`
 
 Run your containerized project.
 
@@ -160,7 +164,7 @@ claude-bazaar run -p 3001              # Custom port
 claude-bazaar run -d                   # Run in background
 ```
 
-### `claude-claude-bazaar serve`
+### `claude-bazaar serve`
 
 Start the web interface.
 
@@ -199,6 +203,16 @@ When your project runs inside the container, these environment variables are ava
 The web interface supports API key authentication. Users enter their Anthropic API key in Settings, and it's passed to Claude Code when executing commands.
 
 For production deployments, you can also set `ANTHROPIC_API_KEY` as an environment variable in your container.
+
+---
+
+## Permissions
+
+The container runtime runs Claude Code with `--dangerously-skip-permissions`, giving it full access to all tools (Bash, Read, Write, Edit, etc.) without requiring user approval. This is appropriate for containerized environments where Claude operates autonomously.
+
+**Security Note:** Because Claude has full tool permissions inside the container, ensure your container is properly isolated and only trusted prompts are executed.
+
+**Future Work:** We plan to implement sandboxing for multi-tenant environments, providing stronger isolation between user sessions.
 
 ---
 

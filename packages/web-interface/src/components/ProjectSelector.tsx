@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useProjects } from '../contexts/ProjectContext';
 
-export function ProjectSelector() {
+interface ProjectSelectorProps {
+  dropUp?: boolean;
+}
+
+export function ProjectSelector({ dropUp = false }: ProjectSelectorProps) {
   const { projects, selectedProject, setSelectedProject, isLoading } = useProjects();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -61,7 +65,9 @@ export function ProjectSelector() {
           />
 
           {/* Dropdown */}
-          <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-20 py-1">
+          <div className={`absolute left-0 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-20 py-1 ${
+            dropUp ? 'bottom-full mb-1' : 'top-full mt-1'
+          }`}>
             {projects.map((project) => (
               <button
                 key={project.id}

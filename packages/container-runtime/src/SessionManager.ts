@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
+import { createInterface } from 'readline';
 import { WorkspaceManager } from './WorkspaceManager.js';
-import { FileInput } from './types.js';
+import { FileInput, StreamEvent } from './types.js';
 
 const DEBUG = process.env.DEBUG === '1' || process.env.DEBUG === 'true';
 
@@ -83,13 +84,38 @@ export class SessionManager {
     return session;
   }
 
+  async executeStreaming(
+    session: Session,
+    prompt: string,
+    onEvent: (event: StreamEvent) => void,
+    _executionId: string
+  ): Promise<{ output: string; process: import('child_process').ChildProcess | null }> {
+    return this.executeInternal(session, prompt, onEvent);
+  }
+
   async execute(
     session: Session,
     prompt: string,
-    onText?: (text: string) => void
+    onEvent?: (event: StreamEvent) => void
   ): Promise<string> {
+    const result = await this.executeInternal(session, prompt, onEvent);
+    return result.output;
+  }
+
+  private async executeInternal(
+    session: Session,
+    prompt: string,
+    onEvent?: (event: StreamEvent) => void
+  ): Promise<{ output: string; process: import('child_process').ChildProcess | null }> {
     return new Promise((resolve, reject) => {
-      const args = ['-p', prompt, '--output-format', 'json'];
+      const args = ['-p', prompt];
+
+      // Use stream-json format when streaming, otherwise json
+      if (onEvent) {
+        args.push('--output-format', 'stream-json', '--verbose');
+      } else {
+        args.push('--output-format', 'json');
+      }
 
       // Resume conversation if we have one
       if (session.conversationId) {
@@ -117,11 +143,35 @@ export class SessionManager {
       let stdout = '';
       let stderr = '';
 
-      claude.stdout?.on('data', (data: Buffer) => {
-        const chunk = data.toString();
-        stdout += chunk;
-        onText?.(chunk);
-      });
+      if (onEvent) {
+        // Parse stream-json events line by line
+        const rl = createInterface({
+          input: claude.stdout!,
+          crlfDelay: Infinity,
+        });
+
+        rl.on('line', (line) => {
+          if (!line.trim()) return;
+          stdout += line + '\n';
+
+          try {
+            const event = JSON.parse(line) as StreamEvent;
+            onEvent(event);
+
+            // Capture session_id from result event
+            if (event.type === 'result') {
+              session.conversationId = event.session_id;
+              debug('Captured conversation ID from result', session.conversationId);
+            }
+          } catch {
+            // Non-JSON line, skip
+          }
+        });
+      } else {
+        claude.stdout?.on('data', (data: Buffer) => {
+          stdout += data.toString();
+        });
+      }
 
       claude.stderr?.on('data', (data: Buffer) => {
         stderr += data.toString();
@@ -131,20 +181,24 @@ export class SessionManager {
         debug('Claude process closed', { code, stdoutLength: stdout.length, stderrLength: stderr.length });
 
         if (code === 0) {
-          // Try to extract conversation ID from output for future resume
-          try {
-            const parsed = JSON.parse(stdout);
-            if (parsed.conversation_id || parsed.session_id) {
-              session.conversationId = parsed.conversation_id || parsed.session_id;
-              debug('Captured conversation ID', session.conversationId);
+          // For non-streaming, try to extract conversation ID
+          if (!onEvent) {
+            try {
+              const parsed = JSON.parse(stdout);
+              if (parsed.conversation_id || parsed.session_id) {
+                session.conversationId = parsed.conversation_id || parsed.session_id;
+                debug('Captured conversation ID', session.conversationId);
+              }
+            } catch {
+              debug('Could not parse stdout as JSON');
             }
-          } catch {
-            // Output might not be JSON, that's ok
-            debug('Could not parse stdout as JSON');
           }
 
           session.lastActivity = Date.now();
-          resolve(stdout);
+          // Only resolve on close for non-streaming
+          if (!onEvent) {
+            resolve({ output: stdout, process: claude });
+          }
         } else {
           debug('Claude process failed', { code, stderr });
           reject(new Error(stderr || `Claude Code exited with code ${code}`));
@@ -155,6 +209,11 @@ export class SessionManager {
         debug('Claude spawn error', error);
         reject(error);
       });
+
+      // For streaming, resolve immediately with process reference so it can be registered
+      if (onEvent) {
+        resolve({ output: '', process: claude });
+      }
     });
   }
 
