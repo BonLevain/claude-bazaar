@@ -38,7 +38,36 @@ export class InitCommand {
 
     await this.updateGitignore(projectDir);
 
-    console.log('\nYou can now run: claude-bazaar build');
+    console.log('\nYou can now build your project container.');
+
+    // Prompt to run build
+    const runBuild = await this.promptYesNo('Run `claude-bazaar build` now?', true);
+    if (runBuild) {
+      const { BuildCommand } = await import('./build.js');
+      const { ConfigLoader } = await import('../services/ConfigLoader.js');
+      const buildCommand = new BuildCommand(this.fileSystem, new ConfigLoader(this.fileSystem));
+      await buildCommand.execute(projectDir);
+    }
+  }
+
+  private async promptYesNo(prompt: string, defaultYes: boolean): Promise<boolean> {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    return new Promise((resolve) => {
+      const hint = defaultYes ? '[Y/n]' : '[y/N]';
+      rl.question(`${prompt} ${hint}: `, (answer) => {
+        rl.close();
+        const trimmed = answer.trim().toLowerCase();
+        if (trimmed === '') {
+          resolve(defaultYes);
+        } else {
+          resolve(trimmed === 'y' || trimmed === 'yes');
+        }
+      });
+    });
   }
 
   private async promptForProjectInfo(defaultName: string): Promise<{ name: string; description: string }> {

@@ -21,6 +21,8 @@ export class RunCommand {
 
     console.log(`Running ${tag} on port ${port}...`);
 
+    console.log(`\n*********\nTo connect the web interface open a new terminal and run: "claude-bazaar serve --projects http://localhost:${port}"\n*********\n`);
+
     const args = [
       'run',
       '-p', `${port}:${port}`,
@@ -39,5 +41,6 @@ export class RunCommand {
     args.push(tag);
 
     await execa('docker', args, { stdio: 'inherit' });
+
   }
 }

@@ -410,12 +410,11 @@ export default function App() {
       });
 
       if (response.status === 401) {
-        const errorData = await response.json();
         setMessages((prev) => [
           ...prev,
           {
             role: 'assistant',
-            content: `**Authentication Required**\n\n${errorData.hint || 'Please configure your API key in settings.'}\n\nClick the ⚙️ icon in the header to add your API key.`,
+            content: `**Authentication Required**\n\nPlease configure your Anthropic API key in [Settings](/settings).`,
           },
         ]);
         setIsLoading(false);
@@ -676,7 +675,20 @@ export default function App() {
                       >
                         {message.role === 'assistant' ? (
                           <div className="prose prose-sm max-w-none">
-                            <ReactMarkdown>{message.content || '...'}</ReactMarkdown>
+                            <ReactMarkdown
+                              components={{
+                                a: ({ href, children }) => (
+                                  <a
+                                    href={href}
+                                    className="text-blue-600 underline hover:text-blue-800"
+                                  >
+                                    {children}
+                                  </a>
+                                ),
+                              }}
+                            >
+                              {message.content || '...'}
+                            </ReactMarkdown>
                           </div>
                         ) : (
                           <p className="whitespace-pre-wrap">{message.content}</p>

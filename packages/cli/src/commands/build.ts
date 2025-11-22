@@ -1,5 +1,6 @@
 import path from 'path';
 import { promises as fs } from 'fs';
+import readline from 'readline';
 import { execa } from 'execa';
 import { fileURLToPath } from 'url';
 import { BazaarConfig, BuildOptions, FileSystemService } from '../types.js';
@@ -41,7 +42,35 @@ export class BuildCommand {
       return this.pushImage(tag, options.registry);
     }
 
+    // Prompt to run
+    const runNow = await this.promptYesNo('Would you like to start the container with `claude-bazaar run` now?', true);
+    if (runNow) {
+      const { RunCommand } = await import('./run.js');
+      const runCommand = new RunCommand(this.configLoader);
+      await runCommand.execute(projectDir);
+    }
+
     return tag;
+  }
+
+  private async promptYesNo(prompt: string, defaultYes: boolean): Promise<boolean> {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    return new Promise((resolve) => {
+      const hint = defaultYes ? '[Y/n]' : '[y/N]';
+      rl.question(`${prompt} ${hint}: `, (answer) => {
+        rl.close();
+        const trimmed = answer.trim().toLowerCase();
+        if (trimmed === '') {
+          resolve(defaultYes);
+        } else {
+          resolve(trimmed === 'y' || trimmed === 'yes');
+        }
+      });
+    });
   }
 
   private async generateDockerfile(projectDir: string, config: BazaarConfig): Promise<string> {
