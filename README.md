@@ -222,6 +222,7 @@ The container runtime runs Claude Code with `--dangerously-skip-permissions`, gi
 [] User Authentication
 [] Monetization
 [] Cloud deployment cli cmds
+[] Thin clients. To allow users to run monetized plugins locally (if they've paid)
 
 ---
 
