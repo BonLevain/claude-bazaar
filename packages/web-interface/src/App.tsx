@@ -317,7 +317,6 @@ function StreamingMessageDisplay({ streaming }: { streaming: StreamingMessage })
       {streaming.result && !streaming.isStreaming && (
         <div className="text-xs text-gray-400 mt-3 pt-2 border-t border-gray-200 flex gap-4">
           <span>{(streaming.result.duration_ms / 1000).toFixed(1)}s</span>
-          <span>${streaming.result.total_cost_usd.toFixed(4)}</span>
           <span>{streaming.result.num_turns} turns</span>
         </div>
       )}
