@@ -1,6 +1,6 @@
 {
-  "name": "@bazaar/container-runtime",
-  "version": "0.1.0",
+  "name": "@claude-bazaar/container-runtime",
+  "version": "0.1.0-alpha.1",
   "description": "HTTP server runtime for headless Claude Code containers",
   "type": "module",
   "main": "dist/index.js",

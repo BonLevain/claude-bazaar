@@ -37,7 +37,7 @@ And yeah, you can charge for it too. But we'll get to that.
 ### 1. Install Claude Bazaar
 
 ```bash
-npm install -g @bazaar/cli
+npm install -g @claude-bazaar/cli
 ```
 
 ### 2. Initialize Your Project
@@ -48,7 +48,7 @@ Navigate to your Claude Code project directory and run:
 claude-bazaar init
 ```
 
-This creates a `claude-bazaar.config.ts` file with your project settings.
+This creates a `claude-bazaar.config.json` file with your project settings.
 
 ### 3. Build Your Container
 
@@ -64,7 +64,7 @@ This packages your project into a Docker container with everything it needs to r
 claude-bazaar run
 ```
 
-Your project is now running on `http://localhost:3000`.
+Your project is now running on in a container at `http://localhost:3000`.
 
 ### 5. Launch the Web Interface
 
@@ -82,7 +82,7 @@ Open `http://localhost:5173` in your browser. You now have a beautiful chat inte
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │  Your Claude    │     │   Docker        │     │   Web           │
 │  Code Project   │ ──► │   Container     │ ◄── │   Interface     │
-│  (CLAUDE.md)    │     │   (Port 3000)   │     │   (Port 5173)   │
+│                 │     │   (Port 3000)   │     │   (Port 5173)   │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
 
@@ -94,31 +94,30 @@ Open `http://localhost:5173` in your browser. You now have a beautiful chat inte
 
 ## Configuration
 
-Your `claude-bazaar.config.ts` file controls how your project is packaged:
+Your `claude-bazaar.config.json` file controls how your project is packaged:
 
-```typescript
-export default {
-  name: 'my-project',
-  version: '1.0.0',
-  description: 'A helpful assistant built with Claude Code',
-  include: ['.'],
-  runtime: {
-    port: 3000,
-    timeout: 120000,
-    image: 'nikolaik/python-nodejs:python3.11-nodejs20'
+```json
+{
+  "name": "my-project",
+  "version": "1.0.0",
+  "description": "A helpful assistant built with Claude Code",
+  "include": ["."],
+  "runtime": {
+    "port": 3000,
+    "timeout": 120000,
+    "image": "nikolaik/python-nodejs:python3.11-nodejs20"
   },
-  // Optional: Include Python dependencies
-  dependencies: {
-    python: './requirements.txt'
+  "dependencies": {
+    "python": "./requirements.txt",
+    "node": "./package.json"
   },
-  // Optional: Serve static files
-  staticFiles: [
+  "staticFiles": [
     {
-      folder: './outputs',
-      urlPath: '/files'
+      "folder": "./outputs",
+      "urlPath": "/files"
     }
   ]
-};
+}
 ```
 
 ### Configuration Options
@@ -214,61 +213,15 @@ The container runtime runs Claude Code with `--dangerously-skip-permissions`, gi
 
 **Future Work:** We plan to implement sandboxing for multi-tenant environments, providing stronger isolation between user sessions.
 
----
+--
 
-## Learn More
+## Roadmap
 
-Claude Bazaar builds on Claude Code's powerful plugin system. To learn more about what you can build:
-
-- [Claude Code Plugins Documentation](https://code.claude.com/docs/en/plugins)
-- [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)
-
----
-
-## Examples
-
-### Basic Research Assistant
-
-```typescript
-// claude-bazaar.config.ts
-export default {
-  name: 'research-assistant',
-  version: '1.0.0',
-  description: 'Helps analyze research papers and extract insights',
-  include: ['.'],
-  runtime: {
-    port: 3000,
-    timeout: 180000,
-    image: 'nikolaik/python-nodejs:python3.11-nodejs20'
-  }
-};
-```
-
-### Data Analyzer with Python
-
-```typescript
-// claude-bazaar.config.ts
-export default {
-  name: 'data-analyzer',
-  version: '1.0.0',
-  description: 'Analyzes CSV files and generates reports',
-  include: ['.'],
-  runtime: {
-    port: 3000,
-    timeout: 300000,
-    image: 'nikolaik/python-nodejs:python3.11-nodejs20'
-  },
-  dependencies: {
-    python: './requirements.txt'
-  },
-  staticFiles: [
-    {
-      folder: './reports',
-      urlPath: '/reports'
-    }
-  ]
-};
-```
+[] Chat History
+[] Sandboxing
+[] User Authentication
+[] Monetization
+[] Cloud deployment cli cmds
 
 ---
 
@@ -302,7 +255,7 @@ We welcome contributions! Here's how to get started:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/claude-bazaar.git
+git clone https://github.com/BonLevain/claude-bazaar.git
 cd claude-bazaar
 
 # Install dependencies for all packages
@@ -325,7 +278,7 @@ npm link
 
 # Run web interface in dev mode
 cd ../web-interface
-npm run dev
+VITE_BAZAAR_PROJECTS="http://localhost:3000" npm run dev
 ```
 
 ### Pull Requests
@@ -338,6 +291,55 @@ npm run dev
 
 ---
 
+## Releasing
+
+### Version Scheme
+
+We use semantic versioning with pre-release tags:
+- **Alpha**: `0.1.0-alpha.1` → `0.1.0-alpha.2` (current stage)
+- **Beta**: `0.1.0-beta.1` → `0.1.0-beta.2`
+- **Stable**: `0.1.0` → `0.1.1` → `0.2.0`
+
+### Manual Release Process
+
+1. **Update versions** in all package.json files:
+   - `packages/cli/package.json`
+   - `packages/container-runtime/package.json`
+   - `packages/web-interface/package.json`
+
+2. **Commit version bump**:
+   ```bash
+   git add -A
+   git commit -m "chore: bump version to 0.1.0-alpha.2"
+   ```
+
+3. **Create and push tag**:
+   ```bash
+   git tag v0.1.0-alpha.2
+   git push origin main --tags
+   ```
+
+4. **GitHub Actions** will automatically:
+   - Build all packages
+   - Publish `@claude-bazaar/cli` to npm
+   - Create a GitHub Release
+
+### Manual npm Publish (if needed)
+
+```bash
+cd packages/cli
+npm run build
+npm run bundle
+npm publish --access public
+```
+
+### Required Secrets
+
+Add these to your GitHub repository secrets:
+- `NPM_TOKEN`: npm access token with publish permissions
+
+---
+
 ## License
 
 Business Source License 1.1 (BSL)
@@ -345,6 +347,17 @@ Business Source License 1.1 (BSL)
 You can use Claude Bazaar to build and deploy your own projects—that's the whole point! The license only restricts building a competing hosted marketplace or adding your own monetization features to offer a competing commercial service.
 
 See [LICENSE.md](LICENSE.md) for details.
+
+---
+
+## Learn More
+
+Claude Bazaar builds on Claude Code's powerful plugin system. To learn more about what you can build:
+
+- [Claude Code Plugins Documentation](https://code.claude.com/docs/en/plugins)
+- [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)
+
+
 
 ---
 

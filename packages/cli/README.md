@@ -1,4 +1,4 @@
-# @bazaar/cli
+# @claude-bazaar/cli
 
 CLI tool for deploying Claude Code projects as containers.
 
@@ -7,12 +7,12 @@ CLI tool for deploying Claude Code projects as containers.
 ```bash
 npm install
 npm run build
-npm link  # Makes 'bazaar' command available globally
+npm link  # Makes 'claude-bazaar' command available globally
 ```
 
 ## Commands
 
-### `claude-claude-bazaar init`
+### `claude-bazaar init`
 
 Initialize a new Bazaar project in the current directory.
 
@@ -22,10 +22,10 @@ claude-bazaar init
 ```
 
 Creates:
-- `bazaar.config.ts` - Project configuration
-- Updates `.gitignore` with `.bazaar/`
+- `claude-bazaar.config.json` - Project configuration
+- Updates `.gitignore` with `.claude-bazaar/`
 
-### `claude-claude-bazaar build`
+### `claude-bazaar build`
 
 Build a Docker image for your project.
 
@@ -41,45 +41,41 @@ Options:
 - `--registry <registry>` - Container registry URL
 
 Creates:
-- `.bazaar/Dockerfile` - Generated Dockerfile
+- `.claude-bazaar/Dockerfile` - Generated Dockerfile
 
 ## Configuration
 
-### `claude-bazaar.config.ts`
+### `claude-bazaar.config.json`
 
-```typescript
-export default {
-  name: 'my-plugin',
-  version: '0.1.0',
-  description: 'A Claude Code plugin',
-
-  // Files to include in the container
-  include: [
-    '**/*',
-    '!node_modules/**',
-    '!.git/**',
-    '!dist/**',
-    '!.bazaar/**',
+```json
+{
+  "name": "my-plugin",
+  "version": "0.1.0",
+  "description": "A Claude Code plugin",
+  "include": [
+    "**/*",
+    "!node_modules/**",
+    "!.git/**",
+    "!dist/**",
+    "!.claude-bazaar/**"
   ],
-
-  // Runtime configuration
-  runtime: {
-    port: 3000,
-    timeout: 120000, // 2 minutes
-  },
-};
+  "runtime": {
+    "port": 3000,
+    "timeout": 120000
+  }
+}
 ```
 
 ## Prerequisites
 
 - Docker installed and running
-- `@bazaar/container-runtime` installed as a dependency
+- `@claude-bazaar/container-runtime` installed as a dependency
 
 ## Workflow
 
 1. Create your Claude Code project with commands, agents, or hooks
-2. Run `claude-claude-bazaar init` to create configuration
-3. Run `claude-claude-bazaar build` to create Docker image
+2. Run `claude-bazaar init` to create configuration
+3. Run `claude-bazaar build` to create Docker image
 4. Run the container:
 
 ```bash

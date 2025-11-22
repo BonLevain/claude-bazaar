@@ -10,10 +10,10 @@ export class InitCommand {
   }
 
   async execute(projectDir: string = process.cwd()): Promise<void> {
-    const configPath = path.join(projectDir, 'claude-bazaar.config.ts');
+    const configPath = path.join(projectDir, 'claude-bazaar.config.json');
 
     if (await this.fileSystem.exists(configPath)) {
-      console.log('Already initialized (claude-bazaar.config.ts exists)');
+      console.log('Already initialized (claude-bazaar.config.json exists)');
       return;
     }
 
@@ -34,7 +34,7 @@ export class InitCommand {
     const config = this.generateConfig(projectName, description, runtimeImage, dependencies, staticFiles);
 
     await this.fileSystem.writeFile(configPath, config);
-    console.log('Created claude-bazaar.config.ts');
+    console.log('Created claude-bazaar.config.json');
 
     await this.updateGitignore(projectDir);
 
@@ -295,46 +295,39 @@ export class InitCommand {
     dependencies: { python?: string; node?: string },
     staticFiles: StaticFileConfig[]
   ): string {
-    const hasDependencies = dependencies.python || dependencies.node;
-    const dependenciesSection = hasDependencies
-      ? `
+    const config: Record<string, unknown> = {
+      name: projectName,
+      version: '0.1.0',
+      description: description,
+      include: [
+        '**/*',
+        '!node_modules/**',
+        '!.git/**',
+        '!dist/**',
+        '!.claude-bazaar/**',
+      ],
+      runtime: {
+        image: runtimeImage,
+        port: 3000,
+        timeout: 120000,
+      },
+    };
 
-  // Dependencies to install in container
-  dependencies: {${dependencies.python ? `
-    python: '${dependencies.python}',` : ''}${dependencies.node ? `
-    node: '${dependencies.node}',` : ''}
-  },`
-      : '';
+    if (dependencies.python || dependencies.node) {
+      config.dependencies = {};
+      if (dependencies.python) {
+        (config.dependencies as Record<string, string>).python = dependencies.python;
+      }
+      if (dependencies.node) {
+        (config.dependencies as Record<string, string>).node = dependencies.node;
+      }
+    }
 
-    const staticFilesSection = staticFiles.length > 0
-      ? `
+    if (staticFiles.length > 0) {
+      config.staticFiles = staticFiles;
+    }
 
-  // Static files served via nginx
-  staticFiles: ${JSON.stringify(staticFiles, null, 4).replace(/\n/g, '\n  ')},`
-      : '';
-
-    return `export default {
-  name: '${projectName}',
-  version: '0.1.0',
-  description: '${description}',
-
-  // Files to include in the container (glob patterns)
-  include: [
-    '**/*',
-    '!node_modules/**',
-    '!.git/**',
-    '!dist/**',
-    '!.claude-bazaar/**',
-  ],
-
-  // Runtime configuration
-  runtime: {
-    image: '${runtimeImage}',
-    port: 3000,
-    timeout: 120000, // 2 minutes
-  },${dependenciesSection}${staticFilesSection}
-};
-`;
+    return JSON.stringify(config, null, 2) + '\n';
   }
 
   private async updateGitignore(projectDir: string): Promise<void> {

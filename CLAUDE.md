@@ -19,7 +19,7 @@ Claude Bazaar enables non-technical Claude Code users to deploy their projects a
 
 ### Deployment Flow
 1. User runs `claude-bazaar init` in project root
-2. CLI generates `.claude-bazaar/config.ts` and `.github/workflows/bazaar-deploy.yml`
+2. CLI generates `claude-bazaar.config.json` and `.github/workflows/bazaar-deploy.yml`
 3. User commits and pushes to GitHub
 4. GitHub Action deploys to AWS ECS
 5. Service runs API/websocket server that triggers Claude Code and returns results
@@ -150,7 +150,7 @@ Interactive initialization that generates all deployment artifacts.
 - AWS credentials (stored as GitHub secrets)
 
 **Generates:**
-- `.claude-bazaar/config.ts` - Project configuration (committed to repo)
+- `claude-bazaar.config.json` - Project configuration (committed to repo)
 - `.github/workflows/bazaar-deploy.yml` - Deployment workflow
 
 ### `claude-bazaar --help`
@@ -158,19 +158,19 @@ Display help information.
 
 ## Configuration
 
-### Project Config (`.claude-bazaar/config.ts`)
-```typescript
-export default {
-  projectName: 'my-claude-project',
-  deployment: {
-    trigger: 'push' | 'manual',
-    platform: 'aws',
-    aws: {
-      region: 'us-east-1',
-      // Other AWS-specific config
-    }
+### Project Config (`claude-bazaar.config.json`)
+```json
+{
+  "name": "my-claude-project",
+  "version": "0.1.0",
+  "description": "A Claude Code plugin",
+  "include": ["**/*", "!node_modules/**", "!.git/**"],
+  "runtime": {
+    "image": "nikolaik/python-nodejs:python3.11-nodejs20",
+    "port": 3000,
+    "timeout": 120000
   }
-};
+}
 ```
 
 ### Environment Variables (Injected at Runtime)

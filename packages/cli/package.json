@@ -1,7 +1,22 @@
 {
-  "name": "@bazaar/cli",
-  "version": "0.1.0",
+  "name": "@claude-bazaar/cli",
+  "version": "0.1.0-alpha.1",
+  "description": "Share and monetize your Claude Code projects with a web interface",
   "type": "module",
+  "license": "BSL-1.1",
+  "author": "Claude Bazaar",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BonLevain/claude-bazaar.git"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "cli",
+    "docker",
+    "deployment",
+    "monetization"
+  ],
   "bin": {
     "claude-bazaar": "./dist/index.js"
   },
@@ -11,6 +26,9 @@
     "web-ui",
     "container-runtime"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "bundle": "bash scripts/bundle.sh",

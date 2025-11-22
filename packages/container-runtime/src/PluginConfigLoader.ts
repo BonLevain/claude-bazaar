@@ -10,35 +10,18 @@ export class PluginConfigLoader {
   }
 
   async load(): Promise<PluginConfig | undefined> {
-    const configPath = path.join(this.pluginDir, 'claude-bazaar.config.ts');
+    const configPath = path.join(this.pluginDir, 'claude-bazaar.config.json');
 
     try {
       await fs.access(configPath);
     } catch {
-      console.log('No claude-bazaar.config.ts found in plugin directory');
+      console.log('No claude-bazaar.config.json found in plugin directory');
       return undefined;
     }
 
     try {
       const content = await fs.readFile(configPath, 'utf-8');
-      return this.parseConfig(content);
-    } catch (error) {
-      console.error('Failed to load plugin config:', (error as Error).message);
-      return undefined;
-    }
-  }
-
-  private parseConfig(content: string): PluginConfig {
-    // Extract the object literal from the export default statement
-    const match = content.match(/export\s+default\s+({[\s\S]*});?\s*$/);
-    if (!match) {
-      throw new Error('Invalid config format: expected "export default { ... }"');
-    }
-
-    try {
-      // Use Function constructor for safer eval
-      const configFn = new Function(`return ${match[1]}`);
-      const config = configFn();
+      const config = JSON.parse(content);
 
       return {
         name: config.name || 'unknown',
@@ -47,7 +30,8 @@ export class PluginConfigLoader {
         staticFiles: config.staticFiles,
       };
     } catch (error) {
-      throw new Error(`Failed to parse config: ${(error as Error).message}`);
+      console.error('Failed to load plugin config:', (error as Error).message);
+      return undefined;
     }
   }
 }
